@@ -865,6 +865,144 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Dans cette partie, on cherche à faire atterrir le booster de manière contrôlée.
+
+    Au lieu de laisser le système évoluer librement, on impose une trajectoire verticale de référence \(y_{plan}(t)\) que le booster doit suivre pendant la descente.
+
+
+    On choisit une trajectoire polynomiale de degré 3 :
+
+    \[
+    y_{plan}(t) = a_3 t^3 + a_2 t^2 + a_1 t + a_0
+    \]
+
+    Un polynôme cubique est suffisant car il permet d’imposer :
+
+    - la position initiale,
+    - la vitesse initiale,
+    - la position finale,
+    - la vitesse finale.
+
+    Cela donne exactement 4 contraintes pour déterminer les 4 coefficients.
+
+
+    Les conditions choisies sont :
+
+    \[
+    y(0)=10
+    \]
+
+    Le booster démarre à une hauteur de 10 m.
+
+    \[
+    \dot{y}(0)=-2
+    \]
+
+    Le booster descend initialement avec une vitesse verticale de \(-2\ \text{m/s}\).
+
+    \[
+    y(5)=1
+    \]
+
+    On veut que le centre de masse atteigne la hauteur \(y=\ell=1\) après 5 secondes.
+
+    \[
+    \dot{y}(5)=0
+    \]
+
+    On impose une vitesse verticale nulle à l’atterrissage pour obtenir une descente douce.
+
+
+    Après résolution du système, on obtient :
+
+    \[
+    a_3 = 0.064
+    \]
+
+    \[
+    a_2 = -0.28
+    \]
+
+    \[
+    a_1 = -2
+    \]
+
+    \[
+    a_0 = 10
+    \]
+
+    La trajectoire planifiée devient alors :
+
+    \[
+    y_{plan}(t)
+    =
+    0.064t^3
+    -
+    0.28t^2
+    -
+    2t
+    +
+    10
+    \]
+
+
+    Ensuite, on calcule :
+
+    - la vitesse planifiée :
+
+    \[
+    \dot{y}_{plan}(t)
+    =
+    3a_3 t^2 + 2a_2 t + a_1
+    \]
+
+    - l’accélération planifiée :
+
+    \[
+    \ddot{y}_{plan}(t)
+    =
+    6a_3 t + 2a_2
+    \]
+
+
+    Comme on impose :
+
+    \[
+    \theta = 0
+    \quad \text{et} \quad
+    \phi = 0
+    \]
+
+    le booster reste vertical et l’équation du mouvement devient simplement :
+
+    \[
+    \ddot{y} = f - g
+    \]
+
+    Donc, pour suivre exactement la trajectoire voulue, on choisit la commande :
+
+    \[
+    f(t)=\ddot{y}_{plan}(t)+g
+    \]
+
+    Ainsi, la poussée du moteur compense la gravité et produit l’accélération nécessaire pour suivre la trajectoire de référence.
+
+
+    Enfin, on simule le système avec `redstart_solve` puis on compare :
+
+    - la trajectoire réelle \(y(t)\),
+    - la trajectoire planifiée \(y_{plan}(t)\),
+    - la vitesse verticale,
+    - et la commande \(f(t)\).
+
+    Cela permet de vérifier que le booster suit correctement la trajectoire imposée jusqu’à l’atterrissage.
+    """)
+    return
+
+
 @app.cell
 def _(M, g, l, np, plt, redstart_solve):
     def controlled_landing():
@@ -946,7 +1084,7 @@ def _(M, g, l, np, plt, redstart_solve):
 
         return fig
 
-    # ========== APPEL DE LA FONCTION ==========
+    # ========== APPEL DE LA FONCTION =========
     controlled_landing()
     return
 
