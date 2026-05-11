@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return (np,)
+    return np, plt, sci
 
 
 @app.cell(hide_code=True)
@@ -134,7 +134,7 @@ def _():
     M=1
     g=1
     print(l,M,g)
-    return M, l
+    return M, g, l
 
 
 @app.cell(hide_code=True)
@@ -189,7 +189,7 @@ def _(np):
         return fx,fy
 
 
-    return
+    return (force,)
 
 
 @app.cell(hide_code=True)
@@ -324,7 +324,7 @@ def _(mo):
 def _(M, l):
     J = M * l**2 / 12
     print(f"Moment d'inertie : J= {J:.4f} kg·m²")
-    return
+    return (J,)
 
 
 @app.cell(hide_code=True)
@@ -506,6 +506,33 @@ def _(mo):
     return
 
 
+@app.cell
+def _(J, M, force, g, l, np):
+    def F(s, f, phi):
+        x, vx, y, vy, theta, omega = s
+        fx, fy = force(f, theta, phi)
+        return np.array([
+            vx,
+            fx / M,
+            vy,
+            fy / M - g,
+            omega,
+            (l * f * np.sin(phi)) / J
+        ])
+
+    return (F,)
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -541,9 +568,34 @@ def _(mo):
         plt.legend()
         return plt.gcf()
     free_fall_example()
+    plt.show()
     ```
     """)
     return
+
+
+@app.cell
+def _(F, sci):
+
+    def redstart_solve(t_span, y0, f_phi, max_step=0.01):
+   
+        def fun(t, y):
+ 
+            f, phi = f_phi(t, y)
+            return F(y, f, phi)
+    
+        # Résolution avec sortie dense pour interpolation
+        result = sci.solve_ivp(
+            fun=fun,
+            t_span=t_span,
+            y0=y0,
+            dense_output=True,
+            max_step=max_step
+        )
+    
+        return result.sol
+
+    return (redstart_solve,)
 
 
 @app.cell(hide_code=True)
@@ -560,6 +612,54 @@ def _(mo):
     return
 
 
+@app.cell
+def _(g, l, np, plt, redstart_solve):
+    def free_fall_example():
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]  # [x, vx, y, vy, theta, omega]
+    
+        def f_phi(t, y):
+            return np.array([0.0, 0.0])  # [f, phi]
+    
+        sol = redstart_solve(t_span, y0, f_phi)
+    
+        # Temps théorique
+        t_theory = np.sqrt(2 * (10.0 - l) / g)
+        print(f"Temps théorique t* = √18 = {t_theory:.4f} s")
+    
+        # Vérification numérique
+        y_at_theory = sol(t_theory)[2]
+        print(f"y(t*) = {y_at_theory:.6f} m (devrait être ≈ 1.0)")
+    
+        # Graphique
+        t = np.linspace(t_span[0], t_span[1], 1000)
+        y_t = sol(t)[2]
+    
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(t, y_t, 'b-', linewidth=2, label=r"$y(t)$")
+        ax.axhline(y=l, color='grey', linestyle='--', label=r"$y=\ell=1$")
+        ax.axvline(x=t_theory, color='red', linestyle=':', linewidth=2, label=f"$t^* = \\sqrt{{18}} \\approx {t_theory:.2f}$s")
+        ax.set_title("Free Fall Test")
+        ax.set_xlabel("time $t$ (s)")
+        ax.set_ylabel("height $y$ (m)")
+        ax.set_xlim([0, 5])
+        ax.set_ylim([0, 11])
+        ax.grid(True)
+        ax.legend()
+    
+        # Point d'intersection
+        ax.plot(t_theory, l, 'ro', markersize=10)
+    
+        plt.tight_layout()
+        plt.show()  # ← IMPORTANT pour afficher
+    
+        return fig
+
+    # EXÉCUTION
+    free_fall_example()
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -571,6 +671,92 @@ def _(mo):
 
     Simulate the corresponding scenario, display graphically the results and check that your solution works as expected.
     """)
+    return
+
+
+@app.cell
+def _(M, g, l, np, plt, redstart_solve):
+    def controlled_landing():
+        # Conditions initiales
+        y0 = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0]  # [x, vx, y, vy, theta, omega]
+    
+        # Coefficients de la trajectoire planifiée y(t) = a3*t³ + a2*t² + a1*t + a0
+        # Contraintes : y(0)=10, ẏ(0)=-2, y(5)=1, ẏ(5)=0
+        a3 = 0.064
+        a2 = -0.28
+        a1 = -2.0
+        a0 = 10.0
+    
+        def y_plan(t):
+            return a3*t**3 + a2*t**2 + a1*t + a0
+    
+        def dy_plan(t):
+            return 3*a3*t**2 + 2*a2*t + a1
+    
+        def d2y_plan(t):
+            return 6*a3*t + 2*a2
+    
+        # Commande : f(t) = ÿ(t) + g (car θ=φ=0 → ÿ = f - g)
+        def f_phi(t, y):
+            f = d2y_plan(t) + g
+            # Vérifier que f ≥ 0
+            if f < 0:
+                print(f"ATTENTION : f({t}) = {f} < 0 !")
+            return np.array([max(f, 0), 0.0])  # phi = 0
+    
+        # Simulation
+        sol = redstart_solve([0, 5], y0, f_phi)
+    
+        # Vérification finale
+        final = sol(5.0)
+        print(f"=== Vérification ===")
+        print(f"y(5)    = {final[2]:.6f}  (objectif: 1.0)")
+        print(f"vy(5)   = {final[3]:.6f}  (objectif: 0.0)")
+        print(f"theta(5)= {final[4]:.6f}  (objectif: 0.0)")
+    
+        # Graphiques
+        t = np.linspace(0, 5, 500)
+        states = sol(t)
+    
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+        # Hauteur
+        ax = axes[0, 0]
+        ax.plot(t, states[2], 'b-', lw=2, label=r"$y(t)$")
+        ax.plot(t, [y_plan(ti) for ti in t], 'r--', label=r"$y_{plan}(t)$")
+        ax.axhline(y=l, color='grey', ls='--', label=r"$y=\ell=1$")
+        ax.set_title("Hauteur"); ax.set_xlabel("t (s)"); ax.set_ylabel("y (m)")
+        ax.legend(); ax.grid(True)
+    
+        # Vitesse verticale
+        ax = axes[0, 1]
+        ax.plot(t, states[3], 'b-', lw=2, label=r"$v_y(t)$")
+        ax.plot(t, [dy_plan(ti) for ti in t], 'r--', label=r"$\dot{y}_{plan}(t)$")
+        ax.axhline(y=0, color='grey', ls='--')
+        ax.set_title("Vitesse verticale"); ax.set_xlabel("t (s)"); ax.set_ylabel(r"$v_y$ (m/s)")
+        ax.legend(); ax.grid(True)
+    
+        # Commande
+        ax = axes[1, 0]
+        f_vals = [d2y_plan(ti) + g for ti in t]
+        ax.plot(t, f_vals, 'g-', lw=2, label=r"$f(t)$")
+        ax.axhline(y=M*g, color='grey', ls='--', label=r"$Mg = 1$")
+        ax.set_title("Commande"); ax.set_xlabel("t (s)"); ax.set_ylabel("f (N)")
+        ax.legend(); ax.grid(True)
+    
+        # Trajectoire x-y
+        ax = axes[1, 1]
+        ax.plot(states[0], states[2], 'b-', lw=2)
+        ax.set_title("Trajectoire (x, y)"); ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
+        ax.set_aspect('equal'); ax.grid(True)
+    
+        plt.tight_layout()
+        plt.show()  # ← ESSENTIEL pour l'affichage
+    
+        return fig
+
+    # ========== APPEL DE LA FONCTION ==========
+    controlled_landing()
     return
 
 
@@ -592,6 +778,11 @@ def _(mo):
 def _():
     from svg import svg, transform, animate_transform
 
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -649,6 +840,61 @@ def _(mo):
     return
 
 
+@app.function
+def make_world(view_box, *objects):
+    """
+    Crée une scène SVG avec ciel, sol et cible d'atterrissage.
+    
+    Paramètres:
+        view_box : [x_min, x_max, y_min, y_max]
+        *objects : éléments SVG supplémentaires (booster, etc.)
+    """
+    x_min, x_max, y_min, y_max = view_box
+    width = x_max - x_min
+    height = y_max - y_min
+    
+    svg_string = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x_min} {y_min} {width} {height}" width="400" height="300">
+    <g transform="translate(0, {y_min + y_max}) scale(1, -1)">
+        <!-- Ciel -->
+        <rect x="{x_min}" y="{y_min}" width="{width}" height="{height}" fill="lightblue" opacity="0.6"/>
+        
+        <!-- Sol -->
+        <rect x="{x_min}" y="{y_min}" width="{width}" height="{abs(y_min)}" fill="saddlebrown"/>
+        
+        <!-- Cible d'atterrissage : 2m de large, centrée en x=0 -->
+        <rect x="-1" y="0" width="2" height="0.15" fill="limegreen" stroke="darkgreen" stroke-width="0.02"/>
+        
+        <!-- Objets supplémentaires -->
+        {''.join(str(obj) for obj in objects)}
+    </g>
+    </svg>'''
+    
+    return svg_string
+
+
+@app.cell
+def _(mo):
+    # Test 1 : Monde vide
+    scene1 = make_world([-3, 3, -2, 4])
+
+    # Test 2 : Avec un carré noir sur la cible
+    scene2 = make_world([-3, 3, -2, 4], 
+        f'<rect x="-1" y="0" width="2" height="2" fill="black"/>')
+
+    # Test 3 : Avec deux carrés
+    scene3 = make_world([-3, 3, -2, 4],
+        f'<rect x="-3" y="2" width="2" height="2" fill="red"/>',
+        f'<rect x="1" y="2" width="2" height="2" fill="blue"/>')
+
+    # Affichage côte à côte dans marimo
+    mo.hstack([
+        mo.Html(scene1),
+        mo.Html(scene2),
+        mo.Html(scene3)
+    ], justify="space-around")
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -701,6 +947,69 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, l, np):
+    def draw_booster(x, y, theta, f, phi):
+        """
+        Dessine un booster statique en SVG.
+    
+        Paramètres:
+            x, y   : position du centre de masse
+            theta  : angle du booster (rad)
+            f      : amplitude de la force
+            phi    : angle de la force par rapport à l'axe (rad)
+        """
+        w_body = 0.2       # largeur du corps
+        h_body = 2 * l     # hauteur = longueur totale
+    
+        # Longueur de la flamme proportionnelle à f
+        flame_len = (f / (M * g)) * (l / 2) if f > 0 else 0
+    
+        # La flamme pointe dans la direction opposée à la force
+        # La force est à angle (theta + phi), la flamme à (theta + phi + pi)
+        flame_angle = theta + phi + np.pi
+    
+        svg_booster = f'''<g transform="translate({x}, {y}) rotate({-np.degrees(theta)})">
+            <!-- Corps du booster -->
+            <rect x="{-w_body/2}" y="{-l}" width="{w_body}" height="{h_body}" 
+                  fill="silver" stroke="black" stroke-width="0.05"/>
+        
+            <!-- Marqueur haut -->
+            <rect x="{-w_body/2}" y="{l-0.2}" width="{w_body}" height="0.2" fill="darkgrey"/>
+        
+            <!-- Flamme du réacteur -->
+            <g transform="translate(0, {l}) rotate({-np.degrees(phi + np.pi)})">
+                <rect x="{-w_body/3}" y="0" width="{w_body/1.5}" height="{flame_len}" 
+                      fill="orange" stroke="red" stroke-width="0.02" opacity="0.8"/>
+            </g>
+        </g>'''
+    
+        return svg_booster
+
+    return (draw_booster,)
+
+
+@app.cell
+def _(M, draw_booster, g, l, mo, np):
+    # Test des trois scénarios demandés
+    test_scene_1 = make_world([-3, 3, -2, 4], 
+        draw_booster(0, l/2, 0, 0, 0))
+
+    test_scene_2 = make_world([-3, 3, -2, 4],
+        draw_booster(0, l, 0, M * g, 0))
+
+    test_scene_3 = make_world([-3, 3, -2, 4],
+        draw_booster(-l/2, l, np.pi/4, 2 * M * g, np.pi/2))
+
+    # Affichage
+    mo.hstack([
+        mo.Html(test_scene_1),
+        mo.Html(test_scene_2),
+        mo.Html(test_scene_3)
+    ], justify="space-around")
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -748,6 +1057,82 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, l, np):
+    def animate_booster(x, y, theta, f, phi, T, n_frames=50):
+        """
+        Crée une animation SVG du booster.
+    
+        Paramètres:
+            x, y, theta, f, phi : fonctions du temps t
+            T                   : durée de l'animation (s)
+            n_frames            : nombre de frames pour l'animation
+        """
+        # Échantillonnage temporel
+        times = np.linspace(0, T, n_frames)
+    
+        # Calcul des keyframes
+        positions = [f"{x(t):.4f},{y(t):.4f}" for t in times]
+        rotations = [f"{-np.degrees(theta(t)):.2f}" for t in times]
+        flames = [f"{(f(t)/(M*g))*(l/2):.4f}" for t in times]
+    
+        # Chaînes de valeurs pour SVG
+        pos_values = ";".join(positions)
+        rot_values = ";".join(rotations)
+        flame_values = ";".join(flames)
+    
+        w_body = 0.2
+        h_body = 2 * l
+    
+        svg_animation = f'''<g>
+            <!-- Animation de translation -->
+            <animateTransform attributeName="transform" type="translate"
+                values="{pos_values}" dur="{T}s" repeatCount="indefinite" calcMode="linear"/>
+        
+            <!-- Animation de rotation (additive pour combiner avec translation) -->
+            <animateTransform attributeName="transform" type="rotate"
+                values="{rot_values}" dur="{T}s" repeatCount="indefinite" calcMode="linear" additive="sum"/>
+        
+            <!-- Corps du booster -->
+            <rect x="{-w_body/2}" y="{-l}" width="{w_body}" height="{h_body}" 
+                  fill="silver" stroke="black" stroke-width="0.05"/>
+        
+            <!-- Flamme avec animation de hauteur -->
+            <g transform="translate(0, {l})">
+                <rect x="{-w_body/3}" y="0" width="{w_body/1.5}" 
+                      height="{flames[0]}" fill="orange" stroke="red" stroke-width="0.02" opacity="0.8">
+                    <animate attributeName="height"
+                        values="{flame_values}" dur="{T}s" repeatCount="indefinite" calcMode="linear"/>
+                </rect>
+            </g>
+        </g>'''
+    
+        return svg_animation
+
+    return (animate_booster,)
+
+
+@app.cell
+def _(M, animate_booster, g, l, mo, np):
+    def test_animation_0():
+        """Scénario de test pour l'animation."""
+        T = 5.0
+    
+        def x(t): return -l/2 + l * (t / T)
+        def y(t): return l/2 + l/2 * (t / T)
+        def theta(t): return (t / T) * 2 * np.pi
+        def f(t): return M * g * (t / T)
+        def phi(t): return 2 * np.pi * (t / T)
+    
+        return animate_booster(x, y, theta, f, phi, T=T)
+
+    # Affichage centré dans marimo
+    mo.Html(
+        make_world([-3, 3, -2, 4], test_animation_0())
+    ).center()
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -763,6 +1148,86 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
+    return
+
+
+@app.cell
+def _(M, animate_booster, g, np, redstart_solve):
+    def create_simulation_animation(y0, f_phi_func, T=5.0):
+        """
+        Crée une animation à partir d'une simulation numérique.
+        """
+        # Simulation
+        sol = redstart_solve([0, T], y0, f_phi_func)
+    
+        # Extraction des fonctions temporelles
+        def x_fn(t): return float(sol(t)[0])
+        def y_fn(t): return float(sol(t)[2])
+        def theta_fn(t): return float(sol(t)[4])
+    
+        def f_fn(t): 
+            f_val, _ = f_phi_func(t, sol(t))
+            return float(f_val)
+    
+        def phi_fn(t):
+            _, phi_val = f_phi_func(t, sol(t))
+            return float(phi_val)
+    
+        return animate_booster(x_fn, y_fn, theta_fn, f_fn, phi_fn, T)
+
+    # ============================================================
+    # SCÉNARIO 1 : Chute libre
+    # ============================================================
+    y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
+
+    def f_phi_free(t, y):
+        return np.array([0.0, 0.0])
+
+    anim_free = create_simulation_animation(y0, f_phi_free, T=5.0)
+
+    # ============================================================
+    # SCÉNARIO 2 : Poussée verticale équilibrée
+    # ============================================================
+    def f_phi_hover(t, y):
+        return np.array([M * g, 0.0])
+
+    anim_hover = create_simulation_animation(y0, f_phi_hover, T=5.0)
+
+    # ============================================================
+    # SCÉNARIO 3 : Poussée latérale
+    # ============================================================
+    def f_phi_drift(t, y):
+        return np.array([M * g, np.pi/8])
+
+    anim_drift = create_simulation_animation(y0, f_phi_drift, T=5.0)
+
+    # ============================================================
+    # SCÉNARIO 4 : Atterrissage contrôlé
+    # ============================================================
+    y0_land = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0]
+    a3, a2 = 0.064, -0.28
+
+    def f_phi_land(t, y):
+        f = (6*a3*t + 2*a2) + g
+        return np.array([max(f, 0), 0.0])
+
+    anim_land = create_simulation_animation(y0_land, f_phi_land, T=5.0)
+    return anim_drift, anim_free, anim_hover, anim_land
+
+
+@app.cell
+def _(anim_drift, anim_free, anim_hover, anim_land, mo):
+    # Affichage des 4 animations
+    mo.vstack([
+        mo.hstack([
+            mo.Html(make_world([-3, 3, -2, 4], anim_free)),
+            mo.Html(make_world([-3, 3, -2, 4], anim_hover))
+        ]),
+        mo.hstack([
+            mo.Html(make_world([-3, 3, -2, 4], anim_drift)),
+            mo.Html(make_world([-3, 3, -2, 4], anim_land))
+        ])
+    ])
     return
 
 
