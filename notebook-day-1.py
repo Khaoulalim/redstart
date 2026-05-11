@@ -134,7 +134,7 @@ def _():
     M=1
     g=1
     print(l,M,g)
-    return
+    return M, l
 
 
 @app.cell(hide_code=True)
@@ -203,7 +203,71 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _():
+def _(mo):
+    mo.md(r"""
+    On applique la deuxième loi de Newton au centre de masse du booster.
+
+    Deux forces agissent sur le booster :
+
+    * la poussée du réacteur $(f_x, f_y)$,
+    * le poids $(0, -Mg)$.
+
+    ### Selon l’axe horizontal $x$
+
+    La somme des forces selon $x$ vaut :
+
+    $$
+    M \ddot{x} = f_x
+    $$
+
+    Or :
+
+    $$
+    f_x = -f \sin(\theta + \phi)
+    $$
+
+    Donc :
+
+    $$
+    M \ddot{x} = -f \sin(\theta + \phi)
+    $$
+
+    Finalement :
+
+    $$
+    \ddot{x} = -\frac{f}{M}\sin(\theta + \phi)
+    $$
+
+    ---
+
+    ### Selon l’axe vertical $y$
+
+    La somme des forces selon $y$ vaut :
+
+    $$
+    M \ddot{y} = f_y - Mg
+    $$
+
+    Or :
+
+    $$
+    f_y = f \cos(\theta + \phi)
+    $$
+
+    Donc :
+
+    $$
+    M \ddot{y} = f \cos(\theta + \phi) - Mg
+    $$
+
+    Finalement :
+
+    $$
+    \ddot{y} = \frac{f}{M}\cos(\theta + \phi) - g
+    $$
+
+    Ces deux équations différentielles décrivent l’évolution du centre de masse du booster.
+    """)
     return
 
 
@@ -212,8 +276,54 @@ def _(mo):
     mo.md(r"""
     ## 🧩 Moment of inertia
 
-    Compute the [moment of inertia](https://en.wikipedia.org/wiki/Moment_of_inertia) $J$ of the booster and define the corresponding Python variable `J`.
+    Compute the [moment of inertia](https://en.wikipedia.org/wiki/Moment_of_inertia) $J$ of the booster and define the corresponding Python variable J.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Le booster est modélisé comme une tige rigide homogène de masse $M$ et de longueur totale $l$.
+
+    Le moment d’inertie d’une tige homogène par rapport à son centre de masse est :
+
+    $$
+    J = \frac{1}{12} M l^2
+    $$
+
+    Dans notre cas :
+
+    - $M = 1 \ \text{kg}$
+    - $l = 2 \ \text{m}$
+
+    On remplace :
+
+    $$
+    J = \frac{1}{12} \times 1 \times 2^2
+    $$
+
+    $$
+    J = \frac{4}{12}
+    $$
+
+    $$
+    J = \frac{1}{3}
+    $$
+
+    Ainsi :
+
+    $$
+    J = \frac{1}{3} \ \text{kg}.\ \text{m}^2
+    $$
+    """)
+    return
+
+
+@app.cell
+def _(M, l):
+    J = M * l**2 / 12
+    print(f"Moment d'inertie : J= {J:.4f} kg·m²")
     return
 
 
@@ -223,6 +333,68 @@ def _(mo):
     ## 🧩 Tilt
 
     Give the ordinary differential equation that governs the evolution of the tilt angle $\theta$.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On applique la deuxième loi de Newton pour la rotation :
+
+    $$
+    J \ddot{\theta} = \sum \tau
+    $$
+
+    où :
+
+    - \(J\) est le moment d’inertie du booster,
+    - \(\ddot{\theta}\) est l’accélération angulaire,
+    - \(\tau\) est le moment des forces appliquées.
+
+
+
+    Deux forces agissent sur le booster :
+
+    - le poids \(P\), appliqué au centre de masse → ne crée pas de moment autour du centre,
+    - la force de poussée \(f\), appliquée à la base du booster → crée un moment.
+
+
+    Pour le calcul du moment
+
+    La poussée \(f\) est inclinée d’un angle \(\phi\) par rapport à l’axe du booster.
+
+    Seule la composante perpendiculaire au bras de levier contribue au moment :
+
+    - bras de levier : \(l\)
+    - composante utile : \(f \sin(\phi)\)
+
+    Donc le moment vaut :
+
+    $$
+    \tau = l f \sin(\phi)
+    $$
+
+
+
+    En remplaçant dans la relation de Newton :
+
+    $$
+    J \ddot{\theta} = l f \sin(\phi)
+    $$
+
+    Donc :
+
+    $$
+    \ddot{\theta} = \frac{l f}{J} \sin(\phi)
+    $$
+
+
+    Alors l'équation finale est :
+
+    $$
+    \boxed{\ddot{\theta} = \frac{l f}{J} \sin(\phi)}
+    $$
     """)
     return
 
@@ -246,6 +418,90 @@ def _(mo):
     $$
     \dot{s} = F(s, f, \phi).
     $$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On définit l’état du système par :
+
+    \(x\) position horizontale,
+    \(v_x\) vitesse horizontale,
+    \(y\) position verticale,
+    \(v_y\) vitesse verticale,
+    \(\theta\) angle du booster,
+    \(\omega\) vitesse angulaire.
+
+    Donc le vecteur d’état est :
+
+    \[
+    s = (x, v_x, y, v_y, \theta, \omega)
+    \]
+
+    On a donc 6 variables, ce qui donne :
+
+    \[
+    n = 6
+    \]
+
+
+    On cherche ensuite une fonction \(F\) telle que :
+
+    \[
+    \dot{s} = F(s, f, \phi)
+    \]
+
+
+    En utilisant les équations de Newton vues avant, on obtient :
+
+    - pour \(x\) :
+    \[
+    \dot{x} = v_x
+    \]
+    \[
+    \dot{v_x} = -\frac{f}{M} \sin(\theta + \phi)
+    \]
+
+    - pour \(y\) :
+    \[
+    \dot{y} = v_y
+    \]
+    \[
+    \dot{v_y} = \frac{f}{M} \cos(\theta + \phi) - g
+    \]
+
+    - pour la rotation :
+    \[
+    \dot{\theta} = \omega
+    \]
+    \[
+    \dot{\omega} = \frac{l f}{J} \sin(\phi)
+    \]
+
+
+    Donc finalement, le champ de vecteurs est :
+
+    \[
+    F(s,f,\phi) =
+    (x', v_x', y', v_y', \theta', \omega')
+    \]
+
+    avec :
+
+    \[
+    (x', v_x', y', v_y', \theta', \omega')
+    =
+    \left(
+    v_x,
+    -\frac{f}{M}\sin(\theta + \phi),
+    v_y,
+    \frac{f}{M}\cos(\theta + \phi) - g,
+    \omega,
+    \frac{l f}{J}\sin(\phi)
+    \right)
+    \]
     """)
     return
 
