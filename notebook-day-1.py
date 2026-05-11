@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return
+    return (np,)
 
 
 @app.cell(hide_code=True)
@@ -128,6 +128,15 @@ def _(mo):
     return
 
 
+@app.cell
+def _():
+    l=2 
+    M=1
+    g=1
+    print(l,M,g)
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -141,10 +150,60 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Le booster est soumis à deux forces principales :
+
+    * le poids, dirigé vers le bas,
+    * la force exercée par le réacteur.
+
+    La poussée du réacteur a une intensité $f$.
+    Sa direction dépend de l’inclinaison du booster $\theta$ ainsi que de l’orientation du moteur $\phi$.
+
+    L’angle total de la poussée est donc :
+
+    $$
+    \theta + \phi
+    $$
+
+    Pour obtenir les composantes horizontale et verticale de cette force, on projette le vecteur de poussée sur les axes $x$ et $y$.
+
+    On obtient alors :
+
+    $$
+    f_x = -f \sin(\theta + \phi)
+    $$
+
+    $$
+    f_y = f \cos(\theta + \phi)
+    $$
+
+    Le signe négatif dans $f_x$ vient du fait que lorsque l’angle est positif, la poussée est dirigée vers la gauche.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np):
+    def force(f,theta,phi):
+        fx = -f * np.sin(theta + phi)
+        fy =  f * np.cos(theta + phi)
+        return fx,fy
+
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Center of Mass
 
     Give the ordinary differential equation that governs the evolution of the position $(x, y)$ of the center of mass of the booster.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     return
 
 
