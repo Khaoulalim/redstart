@@ -324,7 +324,7 @@ def _(mo):
 def _(M, l):
     J = M * l**2 / 12
     print(f"Moment d'inertie : J= {J:.4f} kg·m²")
-    return (J,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -340,61 +340,110 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    On applique la deuxième loi de Newton pour la rotation :
+    Pour trouver l’équation de l’angle \(\theta\), on étudie la rotation du booster autour de son centre de masse.
 
-    $$
-    J \ddot{\theta} = \sum \tau
-    $$
+    On applique la deuxième loi de Newton en rotation :
 
-    où :
+    \[
+    J \ddot{\theta} = \tau
+    \]
 
-    - \(J\) est le moment d’inertie du booster,
-    - \(\ddot{\theta}\) est l’accélération angulaire,
-    - \(\tau\) est le moment des forces appliquées.
+    où \(\tau\) représente le moment des forces.
 
+    Le moteur est placé à la base du booster. Comme le centre de masse est au milieu de la tige, la distance entre le centre de masse et le moteur vaut :
 
+    \[
+    \frac{l}{2}
+    \]
 
-    Deux forces agissent sur le booster :
+    Le vecteur position du moteur est donc :
 
-    - le poids \(P\), appliqué au centre de masse → ne crée pas de moment autour du centre,
-    - la force de poussée \(f\), appliquée à la base du booster → crée un moment.
+    \[
+    r = \frac{l}{2}(\sin\theta,-\cos\theta)
+    \]
 
+    La force du moteur vaut :
 
-    Pour le calcul du moment
+    \[
+    F =
+    (-f\sin(\theta+\phi),\ f\cos(\theta+\phi))
+    \]
 
-    La poussée \(f\) est inclinée d’un angle \(\phi\) par rapport à l’axe du booster.
+    Le moment de cette force est donné par :
 
-    Seule la composante perpendiculaire au bras de levier contribue au moment :
+    \[
+    \tau = r_x f_y - r_y f_x
+    \]
 
-    - bras de levier : \(l\)
-    - composante utile : \(f \sin(\phi)\)
+    En remplaçant :
 
-    Donc le moment vaut :
+    \[
+    \tau =
+    \frac{l}{2}\sin\theta \cdot f\cos(\theta+\phi)
+    -
+    \left(
+    -\frac{l}{2}\cos\theta
+    \right)
+    \left(
+    -f\sin(\theta+\phi)
+    \right)
+    \]
 
-    $$
-    \tau = l f \sin(\phi)
-    $$
+    On obtient :
 
+    \[
+    \tau =
+    \frac{lf}{2}
+    \left[
+    \sin\theta\cos(\theta+\phi)
+    -
+    \cos\theta\sin(\theta+\phi)
+    \right]
+    \]
 
+    Avec l’identité trigonométrique :
 
-    En remplaçant dans la relation de Newton :
+    \[
+    \sin a \cos b - \cos a \sin b
+    =
+    \sin(a-b)
+    \]
 
-    $$
-    J \ddot{\theta} = l f \sin(\phi)
-    $$
+    on trouve :
 
-    Donc :
+    \[
+    \tau =
+    \frac{lf}{2}\sin(-\phi)
+    \]
 
-    $$
-    \ddot{\theta} = \frac{l f}{J} \sin(\phi)
-    $$
+    et comme :
 
+    \[
+    \sin(-\phi)=-\sin(\phi)
+    \]
 
-    Alors l'équation finale est :
+    alors :
 
-    $$
-    \boxed{\ddot{\theta} = \frac{l f}{J} \sin(\phi)}
-    $$
+    \[
+    \tau =
+    -\frac{lf}{2}\sin(\phi)
+    \]
+
+    Donc l’équation différentielle finale est :
+
+    \[
+    J\ddot{\theta}
+    =
+    -\frac{lf}{2}\sin(\phi)
+    \]
+
+    Finalement :
+
+    \[
+    \ddot{\theta}
+    =
+    -\frac{lf}{2J}\sin(\phi)
+    \]
     """)
     return
 
@@ -477,7 +526,7 @@ def _(mo):
     \dot{\theta} = \omega
     \]
     \[
-    \dot{\omega} = \frac{l f}{J} \sin(\phi)
+    \dot{\omega} = -\frac{l f}{2J} \sin(\phi)
     \]
 
 
@@ -499,7 +548,7 @@ def _(mo):
     v_y,
     \frac{f}{M}\cos(\theta + \phi) - g,
     \omega,
-    \frac{l f}{J}\sin(\phi)
+    -\frac{l f}{2J}\sin(\phi)
     \right)
     \]
     """)
@@ -507,7 +556,7 @@ def _(mo):
 
 
 @app.cell
-def _(J, M, force, g, l, np):
+def _(M, force, g, l, np):
     def F(s, f, phi):
         x, vx, y, vy, theta, omega = s
         fx, fy = force(f, theta, phi)
@@ -517,7 +566,7 @@ def _(J, M, force, g, l, np):
             vy,
             fy / M - g,
             omega,
-            (l * f * np.sin(phi)) / J
+            (-l * f * np.sin(phi)) / 2J
         ])
 
     return (F,)
@@ -574,16 +623,70 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Dans cette question, on construit une fonction `redstart_solve` qui permet de simuler l’évolution du booster dans le temps à partir de ses équations différentielles.
+
+    L’idée est de transformer le système physique en un problème numérique que l’on peut résoudre avec un solveur d’équations différentielles.
+
+
+    On commence par définir la dynamique du système.
+
+    À chaque instant \(t\), l’état du booster est donné par :
+
+    \[
+    (x, v_x, y, v_y, \theta, \omega)
+    \]
+
+    et la fonction `f_phi(t, y)` fournit les paramètres de contrôle :
+
+    - la force \(f\)
+    - l’angle \(\phi\)
+
+
+
+    On applique ensuite la deuxième loi de Newton :
+
+    - la force est décomposée avec la fonction `force(f, theta, phi)`
+    - on obtient les accélérations selon \(x\) et \(y\)
+    - on ajoute la gravité sur l’axe vertical
+
+    Cela donne le système :
+
+    - \( \dot{x} = v_x \)
+    - \( \dot{v_x} = f_x / M \)
+    - \( \dot{y} = v_y \)
+    - \( \dot{v_y} = f_y / M - g \)
+    - \( \dot{\theta} = \omega \)
+    - \( \dot{\omega} = (-l f \sin(\phi)) / 2J \)
+
+
+    Ensuite, on utilise `solve_ivp` de SciPy pour résoudre numériquement ce système sur l’intervalle de temps donné.
+
+    On active aussi `dense_output=True` pour pouvoir évaluer la solution à n’importe quel instant.
+
+
+
+    La fonction retourne une fonction `sol(t)` qui permet d’obtenir directement l’état du système à tout moment :
+
+    \[
+    (x(t), v_x(t), y(t), v_y(t), \theta(t), \omega(t))
+    \]
+    """)
+    return
+
+
 @app.cell
 def _(F, sci):
 
     def redstart_solve(t_span, y0, f_phi, max_step=0.01):
-   
+
         def fun(t, y):
- 
+
             f, phi = f_phi(t, y)
             return F(y, f, phi)
-    
+
         # Résolution avec sortie dense pour interpolation
         result = sci.solve_ivp(
             fun=fun,
@@ -592,10 +695,23 @@ def _(F, sci):
             dense_output=True,
             max_step=max_step
         )
-    
+
         return result.sol
 
     return (redstart_solve,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell(hide_code=True)
@@ -612,29 +728,91 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Dans cette question, on étudie le cas le plus simple du modèle : la chute libre du booster.
+
+    On considère qu’il n’y a aucun moteur, donc aucune force de propulsion. Le seul effet qui agit sur le système est la gravité.
+
+
+    On part de l’équation du mouvement vertical :
+
+    \[
+    \ddot{y} = -g
+    \]
+
+    Avec les conditions initiales :
+
+    - \(y(0) = 10\)
+    - \(v_y(0) = 0\)
+
+
+
+    En intégrant cette équation, on obtient :
+
+    \[
+    y(t) = 10 - \frac{1}{2} g t^2
+    \]
+
+    On cherche ensuite le moment où le centre de masse atteint la hauteur \(y = \ell\), avec \(\ell = 2\).
+
+    Donc :
+
+    \[
+    10 - \frac{1}{2} t^2 = 2
+    \]
+
+    ce qui donne :
+
+    \[
+    t = 4 \ \text{s}
+    \]
+
+
+
+    Ensuite, on vérifie ce résultat numériquement en utilisant la fonction `redstart_solve`.
+
+    On simule l’évolution du système dans le temps et on extrait la trajectoire \(y(t)\).
+
+    On trace alors :
+
+    - la courbe de \(y(t)\)
+    - la droite horizontale \(y = \ell\)
+    - le point où la courbe coupe cette droite
+
+
+
+    Le but est de comparer la solution théorique avec la simulation numérique pour vérifier que le modèle est correct.
+
+    Le résultat obtenu est cohérent : le centre de masse atteint bien \(y = \ell\) autour de \(t = 4\) secondes.
+    """)
+    return
+
+
 @app.cell
 def _(g, l, np, plt, redstart_solve):
     def free_fall_example():
         t_span = [0.0, 5.0]
         y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]  # [x, vx, y, vy, theta, omega]
-    
+
         def f_phi(t, y):
             return np.array([0.0, 0.0])  # [f, phi]
-    
+
         sol = redstart_solve(t_span, y0, f_phi)
-    
+
         # Temps théorique
-        t_theory = np.sqrt(2 * (10.0 - l) / g)
+        t_theory = np.sqrt(2 * (y0[2] - l) / g)
         print(f"Temps théorique t* = √18 = {t_theory:.4f} s")
-    
+
         # Vérification numérique
         y_at_theory = sol(t_theory)[2]
         print(f"y(t*) = {y_at_theory:.6f} m (devrait être ≈ 1.0)")
-    
+
         # Graphique
         t = np.linspace(t_span[0], t_span[1], 1000)
         y_t = sol(t)[2]
-    
+
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(t, y_t, 'b-', linewidth=2, label=r"$y(t)$")
         ax.axhline(y=l, color='grey', linestyle='--', label=r"$y=\ell=1$")
@@ -646,17 +824,30 @@ def _(g, l, np, plt, redstart_solve):
         ax.set_ylim([0, 11])
         ax.grid(True)
         ax.legend()
-    
+
         # Point d'intersection
         ax.plot(t_theory, l, 'ro', markersize=10)
-    
+
         plt.tight_layout()
         plt.show()  # ← IMPORTANT pour afficher
-    
+
         return fig
 
     # EXÉCUTION
     free_fall_example()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -679,23 +870,23 @@ def _(M, g, l, np, plt, redstart_solve):
     def controlled_landing():
         # Conditions initiales
         y0 = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0]  # [x, vx, y, vy, theta, omega]
-    
+
         # Coefficients de la trajectoire planifiée y(t) = a3*t³ + a2*t² + a1*t + a0
         # Contraintes : y(0)=10, ẏ(0)=-2, y(5)=1, ẏ(5)=0
         a3 = 0.064
         a2 = -0.28
         a1 = -2.0
         a0 = 10.0
-    
+
         def y_plan(t):
             return a3*t**3 + a2*t**2 + a1*t + a0
-    
+
         def dy_plan(t):
             return 3*a3*t**2 + 2*a2*t + a1
-    
+
         def d2y_plan(t):
             return 6*a3*t + 2*a2
-    
+
         # Commande : f(t) = ÿ(t) + g (car θ=φ=0 → ÿ = f - g)
         def f_phi(t, y):
             f = d2y_plan(t) + g
@@ -703,23 +894,23 @@ def _(M, g, l, np, plt, redstart_solve):
             if f < 0:
                 print(f"ATTENTION : f({t}) = {f} < 0 !")
             return np.array([max(f, 0), 0.0])  # phi = 0
-    
+
         # Simulation
         sol = redstart_solve([0, 5], y0, f_phi)
-    
+
         # Vérification finale
         final = sol(5.0)
         print(f"=== Vérification ===")
         print(f"y(5)    = {final[2]:.6f}  (objectif: 1.0)")
         print(f"vy(5)   = {final[3]:.6f}  (objectif: 0.0)")
         print(f"theta(5)= {final[4]:.6f}  (objectif: 0.0)")
-    
+
         # Graphiques
         t = np.linspace(0, 5, 500)
         states = sol(t)
-    
+
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    
+
         # Hauteur
         ax = axes[0, 0]
         ax.plot(t, states[2], 'b-', lw=2, label=r"$y(t)$")
@@ -727,7 +918,7 @@ def _(M, g, l, np, plt, redstart_solve):
         ax.axhline(y=l, color='grey', ls='--', label=r"$y=\ell=1$")
         ax.set_title("Hauteur"); ax.set_xlabel("t (s)"); ax.set_ylabel("y (m)")
         ax.legend(); ax.grid(True)
-    
+
         # Vitesse verticale
         ax = axes[0, 1]
         ax.plot(t, states[3], 'b-', lw=2, label=r"$v_y(t)$")
@@ -735,7 +926,7 @@ def _(M, g, l, np, plt, redstart_solve):
         ax.axhline(y=0, color='grey', ls='--')
         ax.set_title("Vitesse verticale"); ax.set_xlabel("t (s)"); ax.set_ylabel(r"$v_y$ (m/s)")
         ax.legend(); ax.grid(True)
-    
+
         # Commande
         ax = axes[1, 0]
         f_vals = [d2y_plan(ti) + g for ti in t]
@@ -743,16 +934,16 @@ def _(M, g, l, np, plt, redstart_solve):
         ax.axhline(y=M*g, color='grey', ls='--', label=r"$Mg = 1$")
         ax.set_title("Commande"); ax.set_xlabel("t (s)"); ax.set_ylabel("f (N)")
         ax.legend(); ax.grid(True)
-    
+
         # Trajectoire x-y
         ax = axes[1, 1]
         ax.plot(states[0], states[2], 'b-', lw=2)
         ax.set_title("Trajectoire (x, y)"); ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
         ax.set_aspect('equal'); ax.grid(True)
-    
+
         plt.tight_layout()
         plt.show()  # ← ESSENTIEL pour l'affichage
-    
+
         return fig
 
     # ========== APPEL DE LA FONCTION ==========
@@ -844,7 +1035,7 @@ def _(mo):
 def make_world(view_box, *objects):
     """
     Crée une scène SVG avec ciel, sol et cible d'atterrissage.
-    
+
     Paramètres:
         view_box : [x_min, x_max, y_min, y_max]
         *objects : éléments SVG supplémentaires (booster, etc.)
@@ -852,23 +1043,23 @@ def make_world(view_box, *objects):
     x_min, x_max, y_min, y_max = view_box
     width = x_max - x_min
     height = y_max - y_min
-    
+
     svg_string = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x_min} {y_min} {width} {height}" width="400" height="300">
     <g transform="translate(0, {y_min + y_max}) scale(1, -1)">
         <!-- Ciel -->
         <rect x="{x_min}" y="{y_min}" width="{width}" height="{height}" fill="lightblue" opacity="0.6"/>
-        
+
         <!-- Sol -->
         <rect x="{x_min}" y="{y_min}" width="{width}" height="{abs(y_min)}" fill="saddlebrown"/>
-        
+
         <!-- Cible d'atterrissage : 2m de large, centrée en x=0 -->
         <rect x="-1" y="0" width="2" height="0.15" fill="limegreen" stroke="darkgreen" stroke-width="0.02"/>
-        
+
         <!-- Objets supplémentaires -->
         {''.join(str(obj) for obj in objects)}
     </g>
     </svg>'''
-    
+
     return svg_string
 
 
@@ -952,7 +1143,7 @@ def _(M, g, l, np):
     def draw_booster(x, y, theta, f, phi):
         """
         Dessine un booster statique en SVG.
-    
+
         Paramètres:
             x, y   : position du centre de masse
             theta  : angle du booster (rad)
@@ -961,29 +1152,29 @@ def _(M, g, l, np):
         """
         w_body = 0.2       # largeur du corps
         h_body = 2 * l     # hauteur = longueur totale
-    
+
         # Longueur de la flamme proportionnelle à f
         flame_len = (f / (M * g)) * (l / 2) if f > 0 else 0
-    
+
         # La flamme pointe dans la direction opposée à la force
         # La force est à angle (theta + phi), la flamme à (theta + phi + pi)
         flame_angle = theta + phi + np.pi
-    
+
         svg_booster = f'''<g transform="translate({x}, {y}) rotate({-np.degrees(theta)})">
             <!-- Corps du booster -->
             <rect x="{-w_body/2}" y="{-l}" width="{w_body}" height="{h_body}" 
                   fill="silver" stroke="black" stroke-width="0.05"/>
-        
+
             <!-- Marqueur haut -->
             <rect x="{-w_body/2}" y="{l-0.2}" width="{w_body}" height="0.2" fill="darkgrey"/>
-        
+
             <!-- Flamme du réacteur -->
             <g transform="translate(0, {l}) rotate({-np.degrees(phi + np.pi)})">
                 <rect x="{-w_body/3}" y="0" width="{w_body/1.5}" height="{flame_len}" 
                       fill="orange" stroke="red" stroke-width="0.02" opacity="0.8"/>
             </g>
         </g>'''
-    
+
         return svg_booster
 
     return (draw_booster,)
@@ -1062,7 +1253,7 @@ def _(M, g, l, np):
     def animate_booster(x, y, theta, f, phi, T, n_frames=50):
         """
         Crée une animation SVG du booster.
-    
+
         Paramètres:
             x, y, theta, f, phi : fonctions du temps t
             T                   : durée de l'animation (s)
@@ -1070,33 +1261,33 @@ def _(M, g, l, np):
         """
         # Échantillonnage temporel
         times = np.linspace(0, T, n_frames)
-    
+
         # Calcul des keyframes
         positions = [f"{x(t):.4f},{y(t):.4f}" for t in times]
         rotations = [f"{-np.degrees(theta(t)):.2f}" for t in times]
         flames = [f"{(f(t)/(M*g))*(l/2):.4f}" for t in times]
-    
+
         # Chaînes de valeurs pour SVG
         pos_values = ";".join(positions)
         rot_values = ";".join(rotations)
         flame_values = ";".join(flames)
-    
+
         w_body = 0.2
         h_body = 2 * l
-    
+
         svg_animation = f'''<g>
             <!-- Animation de translation -->
             <animateTransform attributeName="transform" type="translate"
                 values="{pos_values}" dur="{T}s" repeatCount="indefinite" calcMode="linear"/>
-        
+
             <!-- Animation de rotation (additive pour combiner avec translation) -->
             <animateTransform attributeName="transform" type="rotate"
                 values="{rot_values}" dur="{T}s" repeatCount="indefinite" calcMode="linear" additive="sum"/>
-        
+
             <!-- Corps du booster -->
             <rect x="{-w_body/2}" y="{-l}" width="{w_body}" height="{h_body}" 
                   fill="silver" stroke="black" stroke-width="0.05"/>
-        
+
             <!-- Flamme avec animation de hauteur -->
             <g transform="translate(0, {l})">
                 <rect x="{-w_body/3}" y="0" width="{w_body/1.5}" 
@@ -1106,7 +1297,7 @@ def _(M, g, l, np):
                 </rect>
             </g>
         </g>'''
-    
+
         return svg_animation
 
     return (animate_booster,)
@@ -1117,13 +1308,13 @@ def _(M, animate_booster, g, l, mo, np):
     def test_animation_0():
         """Scénario de test pour l'animation."""
         T = 5.0
-    
+
         def x(t): return -l/2 + l * (t / T)
         def y(t): return l/2 + l/2 * (t / T)
         def theta(t): return (t / T) * 2 * np.pi
         def f(t): return M * g * (t / T)
         def phi(t): return 2 * np.pi * (t / T)
-    
+
         return animate_booster(x, y, theta, f, phi, T=T)
 
     # Affichage centré dans marimo
@@ -1159,20 +1350,20 @@ def _(M, animate_booster, g, np, redstart_solve):
         """
         # Simulation
         sol = redstart_solve([0, T], y0, f_phi_func)
-    
+
         # Extraction des fonctions temporelles
         def x_fn(t): return float(sol(t)[0])
         def y_fn(t): return float(sol(t)[2])
         def theta_fn(t): return float(sol(t)[4])
-    
+
         def f_fn(t): 
             f_val, _ = f_phi_func(t, sol(t))
             return float(f_val)
-    
+
         def phi_fn(t):
             _, phi_val = f_phi_func(t, sol(t))
             return float(phi_val)
-    
+
         return animate_booster(x_fn, y_fn, theta_fn, f_fn, phi_fn, T)
 
     # ============================================================
