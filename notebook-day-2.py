@@ -1321,10 +1321,252 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Forme standard du modèle linéarisé
+     le vecteur d’état :
+
+    \[
+    \Delta s =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta \dot{x} \\
+    \Delta y \\
+    \Delta \dot{y} \\
+    \Delta \theta \\
+    \Delta \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    et le vecteur de commande :
+
+    \[
+    \Delta u =
+    \begin{bmatrix}
+    \Delta f \\
+    \Delta \phi
+    \end{bmatrix}.
+    \]
+
+    Le modèle linéarisé peut alors s’écrire sous la forme d’état suivante :
+
+    \[
+    \Delta \dot{s} = A\,\Delta s + B\,\Delta u.
+    \]
+
+    À partir des équations obtenues précédemment, la matrice de dynamique \(A\) est donnée par :
+
+    \[
+    A =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & -g & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix}
+    \]
+
+    et la matrice de commande \(B\) par :
+
+    \[
+    B =
+    \begin{bmatrix}
+    0 & 0 \\
+    0 & -g \\
+    0 & 0 \\
+    \dfrac{1}{M} & 0 \\
+    0 & 0 \\
+    0 & -\dfrac{Mg\ell}{2J}
+    \end{bmatrix}.
+    \]
+
+    En utilisant les valeurs numériques du système :
+
+    \[
+    M = 1,
+    \qquad
+    g = 1,
+    \qquad
+    \ell = 2,
+    \qquad
+    J = \frac{1}{3},
+    \]
+
+    on obtient :
+
+    \[
+    \frac{Mg\ell}{2J}
+    =
+    3.
+    \]
+
+    Les matrices du système deviennent alors :
+
+    \[
+    A =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & -1 & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix}
+    \]
+
+    et
+
+    \[
+    B =
+    \begin{bmatrix}
+    0 & 0 \\
+    0 & -1 \\
+    0 & 0 \\
+    1 & 0 \\
+    0 & 0 \\
+    0 & -3
+    \end{bmatrix}.
+    \]
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    A = np.array([
+        [0,1,0,0,0,0],
+        [0,0,0,0,-1,0],
+        [0,0,0,1,0,0],
+        [0,0,0,0,0,0],
+        [0,0,0,0,0,1],
+        [0,0,0,0,0,0]
+    ])
+
+    B = np.array([
+        [0,0],
+        [0,-1],
+        [0,0],
+        [1,0],
+        [0,0],
+        [0,-3]
+    ])
+    print(A)
+    print(f"Dimension de A : {A.shape}")
+    print(B)
+    print(f"Dimension de B : {B.shape}")
+    return (A,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Stability
 
     Is the generic equilibrium asymptotically stable?
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Critère de stabilité linéaire
+
+    Un système linéaire est asymptotiquement stable si :
+
+    \[
+    \Re(\lambda_i)<0
+    \]
+
+    pour toutes les valeurs propres \(\lambda_i\) de la matrice \(A\).
+
+
+
+    # Analyse de la matrice A
+
+    La matrice :
+
+    \[
+    A=
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & -g & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix}
+    \]
+
+    est une matrice triangulaire superieur alors les valeurs propres sont ceux dans la diagonnale
+
+    # Valeurs propres
+
+    Les valeurs propres de \(A\) sont :
+
+    \[
+    \lambda_i = 0
+    \]
+
+    avec multiplicité.
+
+    Ainsi :
+
+    \[
+    \Re(\lambda_i)=0
+    \]
+
+    et non strictement négatif.
+
+
+
+    Le système n’est pas asymptotiquement stable:
+
+    - une perturbation ne disparaît pas seule,
+    - aucun mécanisme naturel ne le ramène à l’équilibre.
+    """)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(A, np):
+
+    from numpy.linalg import eig
+
+    # Calcul des valeurs propres de A
+    eigenvalues, eigenvectors = eig(A)
+
+    print(f"\nMatrice A ({A.shape[0]}×{A.shape[1]}) :")
+    print(A)
+    print(f"\nValeurs propres de A :")
+    for i, lam in enumerate(eigenvalues):
+        print(f"  λ_{i+1} = {lam:.6f}")
+        if np.isreal(lam):
+            print(f"         → reelle, Re(λ) = {lam.real:.6f}")
+        else:
+            print(f"         → complexe, Re(λ) = {lam.real:.6f}, Im(λ) = {lam.imag:.6f}")
+
+
+
+    # Classification des valeurs propres
+
+    n_stable = np.sum(eigenvalues.real < 0)
+    n_unstable = np.sum(eigenvalues.real > 0)
+    n_marginal = np.sum(np.isclose(eigenvalues.real, 0))
+    print()
+    print("CLASSIFICATION DES VALEURS PROPRES")
+
+    print(f"  Stables (Re < 0)      : {n_stable}")
+    print(f"  Instables (Re > 0)    : {n_unstable}")
+    print(f"  Marginales (Re ≈ 0)   : {n_marginal}")
+    print(f"\n  TOTAL                 : {len(eigenvalues)}")
+
+
     return
 
 
