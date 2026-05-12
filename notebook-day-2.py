@@ -1087,10 +1087,222 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Le modèle dynamique du booster est :
+
+    \[
+    M \ddot{x} = -f \sin(\theta + \phi)
+    \]
+
+    \[
+    M \ddot{y} = f \cos(\theta + \phi) - Mg
+    \]
+
+    \[
+    J \ddot{\theta} = -f \frac{\ell}{2}\sin(\phi)
+    \]
+
+    Un équilibre correspond à :
+
+
+    \[
+    \dot{x}=\dot{y}=\dot{\theta}=0
+    \]
+
+    et :
+
+    \[
+    \ddot{x}=\ddot{y}=\ddot{\theta}=0
+    \]
+
+    ### 1. Équilibre rotationnel
+
+    On impose :
+
+    \[
+    \ddot{\theta}=0
+    \]
+
+    Comme :
+
+    \[
+    J \ddot{\theta} = -f \frac{\ell}{2}\sin(\phi)
+    \]
+
+    et on a:
+    - \(f>0\),
+    - \(|\phi|<\pi/2\),
+
+    on doit avoir :
+
+    \[
+    \sin(\phi)=0
+    \]
+
+    Donc :
+
+    \[
+    \phi_e = 0
+    \]
+
+
+
+    ### 2. Équilibre horizontal
+
+    On impose :
+
+    \[
+    \ddot{x}=0
+    \]
+
+    Donc :
+
+    \[
+    -f \sin(\theta+\phi)=0
+    \]
+
+    Comme \(\phi_e=0\) :
+
+    \[
+    \sin(\theta_e)=0
+    \]
+
+    sachant que  :
+
+    \[
+    |\theta|<\pi/2
+    \]
+
+    on obtient :
+
+    \[
+    \theta_e = 0
+    \]
+
+
+
+
+    ### 3. Équilibre vertical
+
+    On impose :
+
+    \[
+    \ddot{y}=0
+    \]
+
+    Donc :
+
+    \[
+    f \cos(\theta+\phi)-Mg=0
+    \]
+
+    avec :
+    - \(\theta_e=0\),
+    - \(\phi_e=0\),
+
+    alors :
+
+    \[
+    f_e = Mg
+    \]
+
+
+
+    ### Conclusion
+
+    Les équilibres possibles sont :
+
+    \[
+    (x_e, 0, y_e, 0, 0, 0)
+    \]
+
+    avec :
+    - \(x_e\) arbitraire,
+    - \(y_e\) arbitraire.
+
+    Les entrees associes sont :
+
+    \[
+    f_e = Mg
+    \]
+
+    \[
+    \phi_e = 0
+    \]
+
+    conclusion :
+    - le booster reste vertical,
+    - la poussee compense exactement le poids,
+    - aucune acceleration horizontale ou rotationnelle n’existe.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Linearized Model
 
     Introduce the error variables $\Delta x$, $\Delta y$, $\Delta \theta$, and $\Delta f$ and $\Delta \phi$ of the state and input values with respect to the generic equilibrium configuration.
     What are the linear ordinary differential equations that govern (approximately) these variables in a neighbourhood of the equilibrium?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 3. Linéarisation autour de l'équilibre
+
+    On introduit de petites perturbations autour de l'équilibre :
+
+    $$s = s_e + \Delta s, \qquad f = Mg + \Delta f, \qquad \phi = \Delta\phi$$
+
+    On développe chaque équation au **premier ordre** en $\Delta$ (développement de Taylor), en négligeant les termes d'ordre supérieur.
+
+    ### 3.1 Équation de $\Delta\ddot{x}$
+
+    $$M\Delta\dot{v}_x = -(Mg + \Delta f)\,\sin(\Delta\theta + \Delta\phi)$$
+
+    En appliquant $\sin(\varepsilon) \approx \varepsilon$ pour $\varepsilon$ petit :
+
+    $$M\Delta\dot{v}_x \approx -(Mg + \Delta f)(\Delta\theta + \Delta\phi)$$
+
+    On néglige le terme du second ordre $\Delta f \cdot (\Delta\theta + \Delta\phi)$ :
+
+    $$\boxed{\Delta\dot{v}_x = -g\,\Delta\theta - g\,\Delta\phi}$$
+
+    ### 3.2 Équation de $\Delta\ddot{y}$
+
+    $$M\Delta\dot{v}_y = (Mg + \Delta f)\,\cos(\Delta\theta + \Delta\phi) - Mg$$
+
+    En appliquant $\cos(\varepsilon) \approx 1$ :
+
+    $$M\Delta\dot{v}_y \approx (Mg + \Delta f) - Mg = \Delta f$$
+
+    $$\boxed{\Delta\dot{v}_y = \frac{\Delta f}{M}}$$
+
+    ### 3.3 Équation de $\Delta\ddot{\theta}$
+
+    $$J\,\Delta\dot{\omega} = -(Mg + \Delta f)\,\frac{\ell}{2}\,\sin(\Delta\phi)$$
+
+    En appliquant $\sin(\varepsilon) \approx \varepsilon$ et en négligeant $\Delta f \cdot \Delta\phi$ :
+
+    $$\boxed{\Delta\dot{\omega} = -\frac{Mg\,(\ell/2)}{J}\,\Delta\phi}$$
+
+    Numériquement : $\dfrac{Mg(\ell/2)}{J} = \dfrac{1 \times 1 \times 1}{1/3} = 3$.
+
+    ### 3.4 Système linéarisé complet
+
+    En regroupant toutes les équations, le modèle linéarisé s'écrit :
+
+    $$\begin{cases}
+    \Delta\dot{x} = \Delta v_x \\
+    \Delta\dot{v}_x = -g\,\Delta\theta - g\,\Delta\phi \\
+    \Delta\dot{y} = \Delta v_y \\
+    \Delta\dot{v}_y = \dfrac{1}{M}\,\Delta f \\
+    \Delta\dot{\theta} = \Delta\omega \\
+    \Delta\dot{\omega} = -\dfrac{Mg(\ell/2)}{J}\,\Delta\phi
+    \end{cases}$$
     """)
     return
 
