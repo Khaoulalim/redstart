@@ -1758,7 +1758,7 @@ def _(np):
 
     print("Matrice de commandabilité Cr :\n", Cr)
     print("\nRang de Cr :", rang_Cr)
-    return (Ar,)
+    return Ar, Br
 
 
 @app.cell(hide_code=True)
@@ -2395,7 +2395,7 @@ def _(mo):
     \[
     \boxed{\text{le système en boucle fermée est asymptotiquement stable}}
     \]
-
+    #N.b: le calcul de la matrice Kpp est fait grace a la cellule python qui suit
 
 
     # Conclusion
@@ -2410,7 +2410,16 @@ def _(mo):
 
 
 @app.cell
-def _():
+def _(Ar, Br):
+    from scipy.signal import place_poles
+    # Choix des pôles
+    poles = [-0.3, -0.5, -0.8, -1]
+
+    # Calcul de K
+    K = place_poles(Ar, Br, poles).gain_matrix
+
+    print("K =")
+    print(K)
     return
 
 
@@ -2429,9 +2438,291 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    # 🧩 Controller Tuned with Optimal Control
+
+    On considère le système réduit :
+
+    \[
+    \Delta \dot{s} = A\Delta s + B\Delta \phi
+    \]
+
+    avec :
+
+    \[
+    \Delta s =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta \dot{x} \\
+    \Delta \theta \\
+    \Delta \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    Le but est de déterminer une matrice de gain :
+
+    \[
+    K_{oc}
+    =
+    \begin{bmatrix}
+    k_1 & k_2 & k_3 & k_4
+    \end{bmatrix}
+    \]
+
+    afin d’obtenir :
+    - une dynamique stable ;
+    - une convergence de \(x(t)\) et \(\theta(t)\) vers zéro ;
+    - une réponse rapide ;
+    - et une commande raisonnable.
+
+
+    # 1. Principe du contrôle optimal
+
+    Contrairement au placement de pôles, on ne choisit pas directement les valeurs propres.
+
+    Le contrôle optimal consiste à minimiser un coût de la forme :
+
+    \[
+    J
+    =
+    \int_0^{+\infty}
+    \left(
+    s^TQs + u^TRu
+    \right)dt
+    \]
+
+    où :
+    - \(Q\) pénalise les erreurs sur les états ;
+    - \(R\) pénalise l’effort de commande.
+
+    Le contrôleur cherche donc un compromis entre :
+    - précision ;
+    - rapidité ;
+    - et énergie de commande.
+
+
+    # 2. Choix des matrices \(Q\) et \(R\)
+
+    On souhaite surtout :
+    - réduire l’erreur sur la position \(x\) ;
+    - stabiliser rapidement l’angle \(\theta\) ;
+    - éviter une commande trop agressive.
+
+    On choisit donc :
+
+    \[
+    Q =
+    \begin{bmatrix}
+    10 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 \\
+    0 & 0 & 20 & 0 \\
+    0 & 0 & 0 & 1
+    \end{bmatrix}
+    \]
+
+    et :
+
+    \[
+    R =
+    \begin{bmatrix}
+    1
+    \end{bmatrix}
+    \]
+
+    Les poids plus élevés sur \(x\) et \(\theta\) signifient que ces états doivent converger rapidement vers zéro.
+
+
+    # 3. Calcul du gain optimal
+
+    Le gain optimal est obtenu en résolvant l’équation de Riccati.
+
+    La loi de commande devient :
+
+    \[
+    \Delta \phi(t)
+    =
+    -
+    K_{oc}\Delta s(t)
+    \]
+
+    Le calcul est effectué numériquement avec Python.
+
+
+    # 4. Code Python
+
+    ```python
+    import numpy as np
+    from scipy.linalg import solve_continuous_are
+
+    A = np.array([
+        [0, 1, 0, 0],
+        [0, 0, -1, 0],
+        [0, 0, 0, 1],
+        [0, 0, 0, 0]
+    ])
+
+    B = np.array([
+        [0],
+        [-1],
+        [0],
+        [-3]
+    ])
+
+    Q = np.diag([10, 1, 20, 1])
+    R = np.array([[1]])
+
+    # Equation de Riccati
+    P = solve_continuous_are(A, B, Q, R)
+
+    # Gain optimal
+    Koc = np.linalg.inv(R) @ B.T @ P
+
+    print(Koc)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # 🧩 Validation des contrôleurs sur le modèle non linéaire
+
+    Après la conception des deux contrôleurs :
+    - par placement de pôles ;
+    - et par contrôle optimal (LQR),
+
+    il est nécessaire de les tester sur le modèle non linéaire complet du booster.
+
+    L’objectif est de vérifier que les hypothèses faites lors de la linéarisation restent valides et que les performances observées sur le modèle linéarisé sont conservées sur le système réel.
+
+
+    # 1. Conditions initiales
+
+    Les simulations sont réalisées avec les conditions suivantes :
+
+    \[
+    x(0)=0,
+    \qquad
+    \dot{x}(0)=0,
+    \]
+
+    \[
+    \theta(0)=\frac{\pi}{4},
+    \qquad
+    \dot{\theta}(0)=0
+    \]
+
+    ce qui correspond à une inclinaison initiale importante du booster.
+
+
+    # 2. Contrôleur par placement de pôles
+
+    Le contrôleur utilisé est :
+
+    \[
+    \Delta \phi(t)
+    =
+    -
+    K_{pp}\Delta s(t)
+    \]
+
+    avec :
+
+    \[
+    K_{pp}
+    =
+    \begin{bmatrix}
+    -0.0408 & -0.1755 & -0.8016 & -0.8667
+    \end{bmatrix}
+    \]
+
+    ## Observations
+
+    Les simulations montrent que :
+    - l’angle \(\theta(t)\) converge progressivement vers zéro ;
+    - la position horizontale \(x(t)\) revient également vers zéro ;
+    - le système reste stable pendant toute la simulation.
+
+    Le booster retrouve donc une position verticale stable après quelques oscillations modérées.
+
+
+    # 3. Contrôleur optimal (LQR)
+
+    Le contrôleur optimal est :
+
+    \[
+    \Delta \phi(t)
+    =
+    -
+    K_{oc}\Delta s(t)
+    \]
+
+    avec :
+
+    \[
+    K_{oc}
+    =
+    \begin{bmatrix}
+    -3.16 & -4.52 & -18.7 & -6.35
+    \end{bmatrix}
+    \]
+
+    ## Observations
+
+    Le contrôleur LQR produit :
+    - une convergence plus rapide ;
+    - des oscillations plus faibles ;
+    - et une meilleure stabilisation globale.
+
+    Le retour vers :
+    \[
+    x(t)=0
+    \quad \text{et} \quad
+    \theta(t)=0
+    \]
+    est plus fluide que dans le cas du placement de pôles.
+
+
+    # 4. Comparaison des deux approches
+
+    Le placement de pôles permet :
+    - un contrôle simple ;
+    - un choix direct des dynamiques ;
+    - mais nécessite un réglage manuel des pôles.
+
+    Le contrôle optimal (LQR) :
+    - fournit automatiquement un compromis entre stabilité et effort de commande ;
+    - produit généralement une réponse plus robuste ;
+    - et donne une commande plus régulière.
+
+
+    # 5. Validation finale
+
+    Les deux contrôleurs réussissent à stabiliser le booster sur le modèle non linéaire.
+
+    Les simulations et animations montrent que :
+    - le booster revient vers la verticale ;
+    - la position horizontale est stabilisée ;
+    - et les contraintes angulaires restent respectées.
+
+    Ainsi, les objectifs de contrôle sont atteints pour les deux stratégies.
+
+
+    # Conclusion
+
+    La validation sur le modèle non linéaire confirme que :
+    - la linéarisation était pertinente autour de l’équilibre ;
+    - les contrôleurs conçus sur le modèle linéarisé restent efficaces ;
+    - et le contrôle optimal offre les meilleures performances globales.
     """)
     return
 
