@@ -1590,8 +1590,17 @@ def _(mo):
     soit de rang plein. On calcule numériquement :
 
     $$\text{rang}(\mathcal{C}) = 6 = n$$
+                      ( le calcul du rang ce fait par recours le code python ci-dessous)
 
-    **Conclusion** : le système est contrôlable. Bien qu'il n'est pas stable.
+    **Conclusion** : le système est contrôlable. Bien qu'il n'est pas asymptotiquement stable mais il est stable .
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
     """)
     return
 
@@ -1749,7 +1758,7 @@ def _(np):
 
     print("Matrice de commandabilité Cr :\n", Cr)
     print("\nRang de Cr :", rang_Cr)
-    return
+    return (Ar,)
 
 
 @app.cell(hide_code=True)
@@ -1763,6 +1772,128 @@ def _(mo):
 
     What do you see? How do you explain it?
     """)
+    return
+
+
+@app.cell
+def _(Ar, np, plt):
+
+
+    from scipy.integrate import solve_ivp
+
+    # État : [x, x_dot, theta, theta_dot]
+    def dynamics(t, s):
+        return Ar @ s
+
+    # Conditions initiales
+    s0 = [0, 0, np.pi/4, 0]
+
+    # Simulation
+    t_span = (0, 20)
+    t_eval = np.linspace(0, 20, 1000)
+
+    sol = solve_ivp(dynamics, t_span, s0, t_eval=t_eval)
+
+    # Extraction des variables
+    x = sol.y[0]
+    theta = sol.y[2]
+
+    # Graphique de x(t)
+    plt.figure()
+    plt.plot(sol.t, x)
+    plt.title("Évolution de x(t) - Free fall")
+    plt.xlabel("Temps (s)")
+    plt.ylabel("x(t)")
+    plt.grid()
+    plt.show()
+
+    # Graphique de theta(t)
+    plt.figure()
+    plt.plot(sol.t, theta)
+    plt.title("Évolution de θ(t) - Free fall")
+    plt.xlabel("Temps (s)")
+    plt.ylabel("θ(t)")
+    plt.grid()
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Observation des graphes
+
+    - \( \theta(t) \) reste **constant** à sa valeur initiale \( \pi/4 \)
+    - \( x(t) \) évolue comme une **courbe parabolique**, donc sa valeur augmente (ou diminue) de plus en plus vite avec le temps
+    - il n’y a **aucun retour vers zéro** ni pour \( x(t) \) ni pour \( \theta(t) \)
+
+
+
+    ##  Explication
+
+    Ce comportement vient directement du modèle linéarisé avec :
+
+    \[
+    \phi(t) = 0
+    \]
+
+    ###  Pour la rotation
+    Aucune commande n’agit sur le système, donc :
+
+    \[
+    \ddot{\theta}(t) = 0
+    \Rightarrow \dot{\theta}(t) = \text{constante}
+    \]
+
+    \[ \dot{\theta}(0) =0
+    \Rightarrow \theta(t) = \text{constante}
+    \]
+
+
+    Donc l’angle initial est conservé.
+
+
+    ###  Pour la position horizontale
+    La dynamique est couplée à l’inclinaison :
+
+    \[
+    \ddot{x}(t) = -g\,\theta(t)
+    \]
+
+    Comme \(\theta(t)\) est constant et non nul :
+
+    - l’accélération est constante,
+    - donc \(x(t)\) devient une fonction quadratique du temps.
+
+
+
+    ## Conclusion
+
+    Le système montre un comportement instable :
+
+    - l’angle ne se corrige pas,
+    - la position dérive de manière accélérée,
+    - aucune force de stabilisation n’est présente.
+
+    \[
+    \boxed{
+    \text{Le système sans contrôle dérive et ne revient pas à l’équilibre}
+    }
+    \]
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -1810,6 +1941,307 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Dynamique du système en boucle fermée
+
+    Pour contrôler l’orientation du booster, nous utilisons un retour d’état agissant uniquement sur l’angle \(\theta\) et la vitesse angulaire \(\dot{\theta}\).
+
+    La loi de commande choisie est :
+
+    \[
+    \Delta \phi(t)
+    =
+    -
+    k_\theta \Delta \theta(t)
+    -
+    k_\omega \Delta \dot{\theta}(t)
+    \]
+
+    avec la matrice de gain :
+
+    \[
+    K =
+    \begin{bmatrix}
+    0 & 0 & k_\theta & k_\omega
+    \end{bmatrix}
+    \]
+
+    Le modèle linéarisé de la dynamique latérale du booster donne :
+
+    \[
+    \ddot{\theta} = -3\phi
+    \]
+
+    En remplaçant \(\phi\) par la loi de commande :
+
+    \[
+    \phi
+    =
+    -
+    k_\theta \theta
+    -
+    k_\omega \dot{\theta}
+    \]
+
+    on obtient :
+
+    \[
+    \ddot{\theta}
+    =
+    -3(-k_\theta \theta - k_\omega \dot{\theta})
+    \]
+
+    donc :
+
+    \[
+    \ddot{\theta}
+    =
+    3k_\theta \theta
+    +
+    3k_\omega \dot{\theta}
+    \]
+
+    En regroupant tous les termes du même côté :
+
+    \[
+    \ddot{\theta}
+    -
+    3k_\omega \dot{\theta}
+    -
+    3k_\theta \theta
+    =
+    0
+    \]
+
+    Cette équation correspond à un système linéaire amorti du second ordre.
+
+
+
+
+
+    ## Équation caractéristique
+
+    Le polynôme caractéristique associé est :
+
+    \[
+    \lambda^2
+    -
+    3k_\omega \lambda
+    -
+    3k_\theta
+    =
+    0
+    \]
+
+    Pour un système du second ordre de la forme :
+
+    \[
+    \lambda^2 + a\lambda + b
+    \]
+
+    la stabilité asymptotique est garantie lorsque :
+
+    \[
+    a > 0
+    \quad \text{et} \quad
+    b > 0
+    \]
+
+    Dans notre cas :
+
+    \[
+    a = -3k_\omega
+    \]
+
+    et
+
+    \[
+    b = -3k_\theta
+    \]
+
+    Les conditions de stabilité deviennent donc :
+
+    \[
+    k_\omega < 0
+    \quad \text{et} \quad
+    k_\theta < 0
+    \]
+
+    Ces conditions permettent de guider le choix des paramètres du contrôleur.
+
+
+
+    ## Choix des paramètres par simulation
+
+    Après plusieurs essais numériques, différents comportements ont été observés :
+
+    - des gains trop faibles entraînaient une convergence très lente ;
+    - des gains trop élevés provoquaient des oscillations importantes ;
+    - certaines valeurs rendaient la commande trop agressive.
+
+    À l’aide des simulations, nous avons retenu les gains suivants :
+
+    \[
+    k_\theta = -1.5
+    \quad , \quad
+    k_\omega = -1.2
+    \]
+
+    La matrice de gain devient alors :
+
+    \[
+    K =
+    \begin{bmatrix}
+    0 & 0 & -1.5 & -1.2
+    \end{bmatrix}
+    \]
+
+    Ces valeurs offrent un bon compromis entre :
+    - rapidité de stabilisation ;
+    - amortissement des oscillations ;
+    - et limitation de la commande \(\phi(t)\).
+
+
+
+    ## Interprétation physique
+
+    Le coefficient \(k_\theta\) agit comme une force de rappel qui ramène le booster vers la verticale.
+
+    Le coefficient \(k_\omega\) joue le rôle d’amortissement et réduit les oscillations de rotation.
+
+    L’association des deux termes permet d’obtenir un comportement stable et fluide du booster.
+
+
+
+
+    ## Conclusion
+
+    Le système en boucle fermée est asymptotiquement stable car les pôles du système possèdent des parties réelles négatives.
+
+    Les simulations montrent que :
+    - \(\theta(t)\) converge vers zéro ;
+    - \(\dot{\theta}(t)\) converge également vers zéro ;
+    - les oscillations restent limitées ;
+    - et la commande vérifie :
+
+    \[
+    |\phi(t)| < \frac{\pi}{2}
+    \]
+
+    pendant toute la durée de la simulation.
+
+    Le contrôleur manuel obtenu permet donc de stabiliser efficacement l’orientation du booster.
+    """)
+    return
+
+
+@app.cell
+def _():
+    # =============================================================================
+    # 🧩 MANUALLY TUNED CONTROLLER — Variables renommées pour éviter les conflits
+    # =============================================================================
+
+    # Imports locaux avec alias pour éviter conflit avec cell-7
+    import numpy as _np
+    import scipy.integrate as _sci
+    import matplotlib.pyplot as _plt
+
+
+
+    g_lat = 1.0
+
+    # ------------------------------------------------------------
+    # Simulation function
+    # ------------------------------------------------------------
+
+    def simulate_controller(k_theta, k_omega, T=20):
+
+        K_lat = _np.array([0.0, 0.0, k_theta, k_omega])
+
+        def dynamics(t, s):
+
+            x_lat, vx_lat, theta_lat, omega_lat = s
+
+            # feedback control
+            phi_lat = -K_lat @ s
+
+            # linearized dynamics
+            dx = vx_lat
+            dvx = -g_lat * theta_lat
+            dtheta = omega_lat
+            domega = -3 * phi_lat
+
+            return [dx, dvx, dtheta, domega]
+
+        # initial condition
+        s0 = [
+            0.0,           # x_lat
+            0.0,           # vx_lat
+            _np.pi / 4,    # theta_lat = 45°
+            0.0            # omega_lat
+        ]
+
+        sol = _sci.solve_ivp(
+            dynamics,
+            [0, T],
+            s0,
+            dense_output=True,
+            max_step=0.01
+        )
+
+        t_lat = _np.linspace(0, T, 2000)
+        y_lat = sol.sol(t_lat)
+
+        x_lat = y_lat[0]
+        theta_lat = y_lat[2]
+
+        phi_lat = -(
+            K_lat[0] * y_lat[0]
+            + K_lat[1] * y_lat[1]
+            + K_lat[2] * y_lat[2]
+            + K_lat[3] * y_lat[3]
+        )
+
+        return t_lat, x_lat, theta_lat, phi_lat
+
+
+    # ------------------------------------------------------------
+    # Try several gains manually
+    # ------------------------------------------------------------
+
+    tests = [
+        (-0.03, -0.18),
+        (-1.5, -1.2),
+        (0.03, 0.18),
+        (-20.0, 15),
+    ]
+
+    for k_theta, k_omega in tests:
+
+        t_lat, x_lat, theta_lat, phi_lat = simulate_controller(k_theta, k_omega)
+
+        _plt.figure(figsize=(10,5))
+
+        _plt.plot(t_lat, theta_lat, label=r'$\theta(t)$')
+        _plt.plot(t_lat, phi_lat, label=r'$\phi(t)$')
+
+        _plt.axhline(_np.pi/2, linestyle='--')
+        _plt.axhline(-_np.pi/2, linestyle='--')
+
+        _plt.title(
+            f"k_theta = {k_theta}, k_omega = {k_omega}"
+        )
+
+        _plt.xlabel("time")
+        _plt.grid(True)
+        _plt.legend()
+
+        _plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controller Tuned with Pole Assignment
 
     Using pole assignement, find a matrix
@@ -1843,6 +2275,142 @@ def _(mo):
 
     Explain how you find the proper design parameters!
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #  Détermination de \(K_{pp}\)
+    (méthode d’Ackermann + choix des pôles)
+
+    On considère le système :
+
+    \[
+    \Delta \dot{s} = A \Delta s + B u,
+    \qquad
+    u = \Delta \phi = -K_{pp} \Delta s
+    \]
+
+    Donc en boucle fermée :
+
+    \[
+    \Delta \dot{s} = (A - BK_{pp})\Delta s
+    \]
+
+    L’objectif est de choisir \(K_{pp}\) pour imposer les dynamiques du système.
+
+
+    # 1. Placement de pôles
+
+    On ne choisit pas directement \(K_{pp}\).
+    On choisit d’abord les **valeurs propres désirées** de la matrice \(A - BK_{pp}\).
+
+    Ces valeurs propres déterminent :
+
+    - la stabilité (partie réelle < 0),
+    - la vitesse de convergence,
+    - le niveau d’oscillation.
+
+
+
+    ##  Pourquoi ces pôles ?
+
+    On choisit typiquement des pôles du type :
+
+    \[
+    p_1 = -0.3,\quad p_2 = -0.5,\quad p_3 = -0.8,\quad p_4 = -1
+    \]
+
+    ###  Justification :
+
+    - Tous sont **strictement négatifs** → stabilité assurée
+    - Pas trop proches de 0 → sinon réponse trop lente
+    - Pas trop grands → sinon commande trop agressive
+
+    ###  Interprétation temporelle
+
+    Un pôle \(p = -\alpha\) donne une dynamique :
+
+    \[
+    e^{-\alpha t}
+    \]
+
+    Donc :
+    - \(\alpha \approx 0.3 \Rightarrow\) dynamique lente (~10–20 s)
+    - \(\alpha \approx 1 \Rightarrow\) dynamique rapide (~3–5 s)
+
+    On mélange donc lenteur + rapidité pour équilibrer position et stabilité.
+
+
+
+    #  Méthode d’Ackermann
+
+
+
+    ## Étapes :
+
+    Le système est commandable.
+
+
+
+    ### 1. Polynôme désiré
+
+    On construit :
+
+    \[
+    P(\lambda) = (\lambda - p_1)(\lambda - p_2)(\lambda - p_3)(\lambda - p_4)
+    \]
+
+    Ce polynôme fixe la dynamique voulue.
+
+
+
+    ###  2. Formule d’Ackermann
+
+    Le gain est donné par :
+
+    \[
+    K_{pp} = \begin{bmatrix}0 & 0 & 0 & 1\end{bmatrix}
+    \mathcal{C}^{-1} P(A)
+    \]
+
+    où :
+
+    - \(P(A)\) est le polynôme matriciel :
+    \[
+    P(A) = A^4 + a_3A^3 + a_2A^2 + a_1A + a_0I
+    \]
+
+     Stabilité
+
+    La matrice \(A - BK_{pp}\) possède des valeurs propres strictement négatives :
+
+    \[
+    \Re(\lambda_i) < 0
+    \]
+
+    Donc :
+
+    \[
+    \boxed{\text{le système en boucle fermée est asymptotiquement stable}}
+    \]
+
+
+
+    # Conclusion
+
+    Le placement de pôles permet de :
+
+    - imposer une convergence rapide de \(x(t)\),
+    - stabiliser simultanément la dynamique de rotation,
+    - garantir la stabilité asymptotique du système fermé.
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
