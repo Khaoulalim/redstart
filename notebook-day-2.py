@@ -1454,7 +1454,7 @@ def _(np):
     print(f"Dimension de A : {A.shape}")
     print(B)
     print(f"Dimension de B : {B.shape}")
-    return (A,)
+    return A, B
 
 
 @app.cell(hide_code=True)
@@ -1583,6 +1583,38 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    On vérifie si l'on peut ramener l'état depuis n'importe quelle condition initiale vers n'importe quelle cible. La condition de Kalman exige que la matrice de contrôlabilité :
+
+    $$\mathcal{C} = \begin{bmatrix} B & AB & A^2B & A^3B & A^4B & A^5B \end{bmatrix} \in \mathbb{R}^{6 \times 12}$$
+
+    soit de rang plein. On calcule numériquement :
+
+    $$\text{rang}(\mathcal{C}) = 6 = n$$
+
+    **Conclusion** : le système est contrôlable. Bien qu'il n'est pas stable.
+    """)
+    return
+
+
+@app.cell
+def _(A, B, np):
+    C = B
+    n = A.shape[0]
+
+    for j in range(1, n):
+        C = np.hstack((C, np.linalg.matrix_power(A, j) @ B))
+
+    # Calcul du rang
+    rang_C = np.linalg.matrix_rank(C)
+
+    print("Matrice de commandabilité C :\n", C)
+    print("\nRang de C :", rang_C)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Lateral Dynamics
 
     We limit our interest in the lateral position $x$, the tilt $\theta$ and their derivatives (we are for the moment fine with letting $y$ and $\dot{y}$ be uncontrolled). We also set $f = M g$ and control the system only with $\phi$.
@@ -1591,6 +1623,132 @@ def _(mo):
 
     - Check the controllability of this new system.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Système réduit
+
+    On se limite aux variables latérales du système :
+
+    \[
+    \Delta s_r =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta \dot{x} \\
+    \Delta \theta \\
+    \Delta \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    On suppose en plus :
+    - \(f = Mg\) (donc la poussée verticale est compensée),
+    - seule la commande \(\Delta \phi\) est utilisée.
+
+    Le vecteur de commande devient donc :
+
+    \[
+    \Delta u = \Delta \phi
+    \]
+
+
+
+    ## Matrice d’état réduite \(A\)
+
+    On extrait du modèle initial les dynamiques liées à \(x\) et \(\theta\) :
+
+    \[
+    A =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & -1 & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0
+    \end{bmatrix}
+    \]
+
+
+
+    ## Matrice de commande réduite \(B\)
+
+    La commande agit uniquement sur la dynamique de rotation :
+
+    \[
+    B =
+    \begin{bmatrix}
+    0 \\
+    -1 \\
+    0 \\
+    -3
+    \end{bmatrix}
+    \]
+
+
+    ## Commandabilité du système
+
+    On construit la matrice de commandabilité :
+
+    \[
+    C = [B \;\; AB \;\; A^2B \;\; A^3B]
+    \]
+
+    Après calcul, on obtient une matrice de rang :
+
+    \[
+    \text{rang}(C) = 4
+    \]
+
+
+
+    ## Conclusion
+
+    Le rang de la matrice de commandabilité est égal à la dimension de l’état :
+
+    \[
+    \text{rang}(C) = 4
+    \]
+
+    Donc :
+
+    \[
+    \boxed{\text{Le système réduit est complètement commandable}}
+    \]
+
+    Cela signifie que la seule entrée \(\phi\) permet de contrôler toutes les variables latérales \((x, \dot{x}, \theta, \dot{\theta})\).
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    # Ar c'est la matrice A reduite 
+    Ar = np.array([
+        [0, 1, 0, 0],
+        [0, 0, -1, 0],
+        [0, 0, 0, 1],
+        [0, 0, 0, 0]
+    ])
+    # Br c'est la matrice B reduite 
+
+    Br = np.array([
+        [0],
+        [0],
+        [0],
+        [-3]
+    ])
+    Cr = Br
+    nr = Ar.shape[0]
+
+    for d in range(1, nr):
+        Cr = np.hstack((Cr, np.linalg.matrix_power(Ar, d) @ Br))
+
+    # Calcul du rang
+    rang_Cr = np.linalg.matrix_rank(Cr)
+
+    print("Matrice de commandabilité Cr :\n", Cr)
+    print("\nRang de Cr :", rang_Cr)
     return
 
 
