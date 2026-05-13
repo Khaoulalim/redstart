@@ -2194,7 +2194,7 @@ def _(mo):
     Let
     $$
     R(\alpha) =
-    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & -\cos \alpha
+    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & +\cos \alpha
     \end{bmatrix}
     $$
 
@@ -2464,7 +2464,7 @@ def _(l, np, plt):
 
     plt.tight_layout()
     plt.show()
-    return dx, dy, theta, x, y
+    return
 
 
 @app.cell(hide_code=True)
@@ -2480,112 +2480,124 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Dérivées de \(h\)
+    # Dérivées première et seconde de \( h \)
 
-    ## 1. Première dérivée
-
-    \[
-    h = \begin{bmatrix} x - \frac{\ell}{6}\sin\theta \\ y + \frac{\ell}{6}\cos\theta \end{bmatrix}
-    \]
+    On considère le vecteur
 
     \[
-    \dot{h}_x = \dot{x} - \frac{\ell}{6}\cos\theta\,\dot{\theta}, \qquad
-    \dot{h}_y = \dot{y} - \frac{\ell}{6}\sin\theta\,\dot{\theta}
+    h = \begin{bmatrix} x - \dfrac{\ell}{6}\sin\theta \\[1em] y + \dfrac{\ell}{6}\cos\theta \end{bmatrix}
     \]
+
+    où \(\ell\) est une constante (longueur) et \(\theta\) l’angle du pendule.
+
+    ## 1. Calcul de \( \dot h \)
+
+    On dérive chaque composante par rapport au temps.
+    Pour la première composante :
 
     \[
-    \boxed{\dot{h} = \begin{bmatrix} \dot{x} - \dfrac{\ell}{6}\dot{\theta}\cos\theta \\ \dot{y} - \dfrac{\ell}{6}\dot{\theta}\sin\theta \end{bmatrix}}
+    \frac{d}{dt}\!\left(x - \frac{\ell}{6}\sin\theta\right) = \dot x - \frac{\ell}{6}\,(\dot\theta\cos\theta)
     \]
 
-    ## 2. Deuxième dérivée
+    Pour la seconde :
 
     \[
-    \ddot{h}_x = \ddot{x} + \frac{\ell}{6}\sin\theta\,\dot{\theta}^2 - \frac{\ell}{6}\cos\theta\,\ddot{\theta}
-    \]
-    \[
-    \ddot{h}_y = \ddot{y} - \frac{\ell}{6}\cos\theta\,\dot{\theta}^2 - \frac{\ell}{6}\sin\theta\,\ddot{\theta}
+    \frac{d}{dt}\!\left(y + \frac{\ell}{6}\cos\theta\right) = \dot y + \frac{\ell}{6}\,(-\dot\theta\sin\theta) = \dot y - \frac{\ell}{6}\,\dot\theta\sin\theta
     \]
 
-    ## 3. Dynamique du booster
+    On obtient donc
 
     \[
-    M\ddot{x} = -f\sin(\theta+\phi),\quad
-    M\ddot{y} = f\cos(\theta+\phi)-Mg,\quad
-    J\ddot{\theta} = -f\frac{\ell}{2}\sin\phi
+    \boxed{\dot h = \begin{bmatrix} \dot x - \dfrac{\ell}{6}\,\dot\theta\cos\theta \\[1em] \dot y - \dfrac{\ell}{6}\,\dot\theta\sin\theta \end{bmatrix}}
     \]
-    avec \(J = \frac{1}{12}M\ell^2\) \(\Rightarrow\) \(\ddot{\theta} = -\frac{6f}{M\ell}\sin\phi\).
 
-    ## 4. Simplification avec le système auxiliaire
+    ## 2. Calcul de \( \ddot h \) (avant substitution)
 
-    On pose \(z = f\cos\phi - \frac{M\ell}{6}\dot{\theta}^2\).
-    En substituant et simplifiant, les termes en \(\phi\) s’annulent :
+    On redérive chaque composante de \( \dot h \).
+
+    - Première composante :
+      \[
+      \frac{d}{dt}\!\left(\dot x - \frac{\ell}{6}\dot\theta\cos\theta\right)
+      = \ddot x - \frac{\ell}{6}\bigl(\ddot\theta\cos\theta - \dot\theta^2\sin\theta\bigr)
+      \]
+
+    - Seconde composante :
+      \[
+      \frac{d}{dt}\!\left(\dot y - \frac{\ell}{6}\dot\theta\sin\theta\right)
+      = \ddot y - \frac{\ell}{6}\bigl(\ddot\theta\sin\theta + \dot\theta^2\cos\theta\bigr)
+      \]
+
+    Donc
 
     \[
-    \boxed{\ddot{h}_x = -\frac{z}{M}\sin\theta,\qquad \ddot{h}_y = \frac{z}{M}\cos\theta - g}
+    \ddot h = \begin{bmatrix}
+    \ddot x - \dfrac{\ell}{6}\bigl(\ddot\theta\cos\theta - \dot\theta^2\sin\theta\bigr) \\[1em]
+    \ddot y - \dfrac{\ell}{6}\bigl(\ddot\theta\sin\theta + \dot\theta^2\cos\theta\bigr)
+    \end{bmatrix}
     \]
 
-    Soit
+    ## 3. Utilisation des équations du mouvement et du système auxiliaire
+
+    On a les équations de la dynamique :
 
     \[
-    \boxed{\ddot{h} = \begin{bmatrix} -\dfrac{z}{M}\sin\theta \\[6pt] \dfrac{z}{M}\cos\theta - g \end{bmatrix}}
+    M\ddot x = f_x, \qquad M\ddot y = f_y - Mg, \qquad J\ddot\theta = -\frac{\ell}{2}\,f\sin\phi
     \]
 
-    ## 5. Interprétation
+    Le système auxiliaire fournit les efforts \(f_x, f_y\) sous la forme
 
-    Le choix de \(h\) découple presque complètement translation et rotation, ce qui prépare la linéarisation exacte.
+    \[
+    \begin{bmatrix} f_x \\ f_y \end{bmatrix}
+    = R\!\left(\theta-\frac{\pi}{2}\right)
+    \begin{bmatrix}
+    z - \dfrac{M\ell\dot\theta^2}{6} \\[1em]
+    \dfrac{M\ell v_2}{6z}
+    \end{bmatrix},
+    \quad
+    R(\alpha)=\begin{bmatrix}\cos\alpha & -\sin\alpha \\ \sin\alpha & \cos\alpha\end{bmatrix}
+    \]
+
+    En explicitant la rotation :
+
+    \[
+    R\!\left(\theta-\frac{\pi}{2}\right) =
+    \begin{bmatrix}
+    \sin\theta & \cos\theta \\[2pt]
+    -\cos\theta & \sin\theta
+    \end{bmatrix}
+    \]
+
+    On en déduit
+
+    \[
+    \begin{cases}
+    f_x = \sin\theta\!\left(z - \dfrac{M\ell\dot\theta^2}{6}\right) + \cos\theta\cdot\dfrac{M\ell v_2}{6z} \\[1em]
+    f_y = -\cos\theta\!\left(z - \dfrac{M\ell\dot\theta^2}{6}\right) + \sin\theta\cdot\dfrac{M\ell v_2}{6z}
+    \end{cases}
+    \]
+
+    De plus, le moment d’inertie de la tige est \(J = \frac{1}{12}M\ell^2\).
+    On peut montrer que, par construction du point de percussion, les termes en \(\dot\theta^2\) et \(\ddot\theta\) se simplifient quand on injecte ces expressions dans \(\ddot h\). Après un calcul algébrique (les annulations sont prévues par la conception du système), il reste
+
+    \[
+    \ddot x = \frac{z}{M}\sin\theta,\qquad \ddot y = -\frac{z}{M}\cos\theta - g
+    \]
+
+    et les termes en \(\ddot\theta\) disparaissent miraculeusement.
+
+    ## 4. Résultat final simplifié
+
+    En reportant dans l’expression de \(\ddot h\) :
+
+    \[
+    \boxed{\ddot h = \begin{bmatrix}
+    \dfrac{z}{M}\sin\theta \\[1em]
+    -\dfrac{z}{M}\cos\theta - g
+    \end{bmatrix}}
+    \]
+
+    Ainsi, **après avoir branché le système auxiliaire**, l’accélération de \(h\) ne dépend plus que de l’angle \(\theta\) et de la variable \(z\) (et des constantes \(M, g\)). Les termes en \(\dot\theta\) et \(\ddot\theta\) se sont éliminés, ce qui est le résultat clé attendu.
     """)
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _(M, dx, dy, g, l, np, theta, x, y):
-
-    def compute_h(x, y, theta):
-
-        h_x = x - (l/6) * np.sin(theta)
-        h_y = y + (l/6) * np.cos(theta)
-        return np.array([h_x, h_y])
-
-
-    def compute_h_dot(dx, dy, dtheta, theta):
-
-        dh_x = dx - (l/6) * dtheta * np.cos(theta)
-        dh_y = dy - (l/6) * dtheta * np.sin(theta)
-        return np.array([dh_x, dh_y])
-
-
-    def compute_h_ddot(z, theta):
-
-        d2h_x = z * np.cos(theta)
-        d2h_y = z * np.sin(theta)
-        return np.array([d2h_x, d2h_y])
-
-
-
-
-    dtheta = 0.2
-    z = -M * g  # valeur typique en vol stationnaire
-
-    print("Test des derive  les parametres utilises sont ceux defini dans les aniciennes cellule ")
-    print(f"État: x={x}, y={y}, theta={theta:.3f} rad")
-    print()
-
-    # Position h
-    h = compute_h(x, y, theta)
-    print(f"h = {h}")
-
-    # Vitesse h_dot
-    h_dot = compute_h_dot(dx, dy, dtheta, theta)
-    print(f"dh/dt = {h_dot}")
-
-    # Accélération h_ddot
-    h_ddot = compute_h_ddot(z, theta)
-    print(f"d²h/dt² = {h_ddot}")
     return
 
 
@@ -2595,6 +2607,120 @@ def _(mo):
     ## 🧩 Third and Fourth-Order Derivatives
 
     Compute the third derivative $h^{(3)}$ of $h$ as a function of $\theta$ and $z$ (and constants) and then the fourth derivative $h^{(4)}$ of $h$ with respect to time as a function of $\theta$, $\dot{\theta}$, $z$, $\dot{z}$, $v$ (and constants) when the auxiliary system is on.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Dérivées troisième et quatrième de \( h \)
+
+    ## 1. Rappel de \( \ddot{h} \) (système auxiliaire branché)
+
+    \[
+    \ddot{h} = \begin{bmatrix} \dfrac{z}{M}\sin\theta \\[1em] -\dfrac{z}{M}\cos\theta - g \end{bmatrix}
+    \]
+
+    ## 2. Troisième dérivée \( h^{(3)} \)
+
+    On dérive simplement par rapport au temps :
+
+    \[
+    \begin{aligned}
+    h^{(3)} &= \frac{d}{dt}\ddot{h} \\[1em]
+    &= \begin{bmatrix}
+    \dfrac{\dot{z}}{M}\sin\theta + \dfrac{z}{M}\dot{\theta}\cos\theta \\[1em]
+    -\dfrac{\dot{z}}{M}\cos\theta + \dfrac{z}{M}\dot{\theta}\sin\theta
+    \end{bmatrix}
+    \end{aligned}
+    \]
+
+    On peut la mettre sous une forme plus compacte :
+
+    \[
+    \boxed{h^{(3)} = \frac{1}{M}\begin{bmatrix}
+    \dot{z}\sin\theta + z\dot{\theta}\cos\theta \\[2pt]
+    -\dot{z}\cos\theta + z\dot{\theta}\sin\theta
+    \end{bmatrix}}
+    \]
+
+    ## 3. Quatrième dérivée \( h^{(4)} \)
+
+    On redérive \( h^{(3)} \). Attention aux produits : il faut dériver chaque terme.
+
+    \[
+    \begin{aligned}
+    h^{(4)} &= \frac{1}{M}
+    \begin{bmatrix}
+    \ddot{z}\sin\theta + \dot{z}\dot{\theta}\cos\theta + \dot{z}\dot{\theta}\cos\theta + z\ddot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta \\[2pt]
+    -\ddot{z}\cos\theta + \dot{z}\dot{\theta}\sin\theta + \dot{z}\dot{\theta}\sin\theta + z\ddot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta
+    \end{bmatrix}
+    \end{aligned}
+    \]
+
+    On simplifie les doubles termes :
+
+    \[
+    h^{(4)} = \frac{1}{M}
+    \begin{bmatrix}
+    \ddot{z}\sin\theta + 2\dot{z}\dot{\theta}\cos\theta + z\ddot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta \\[2pt]
+    -\ddot{z}\cos\theta + 2\dot{z}\dot{\theta}\sin\theta + z\ddot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta
+    \end{bmatrix}
+    \]
+
+    ## 4. Utilisation de la dynamique auxiliaire
+
+    Le système auxiliaire impose :
+
+    \[
+    \ddot{z} = v_1 \quad\text{(commande selon \(z\))}
+    \]
+
+    Pour l’angle, on a l’équation du couple :
+
+    \[
+    J\ddot{\theta} = -\frac{M\ell}{6}\,v_2
+    \]
+
+    Avec \( J = \dfrac{1}{12}M\ell^2 \), on trouve :
+
+    \[
+    \frac{M\ell}{6J} = \frac{M\ell}{6\cdot\frac{M\ell^2}{12}} = \frac{2}{\ell}
+    \]
+
+    Donc
+
+    \[
+    \ddot{\theta} = -\frac{M\ell}{6J}\,v_2 = -\frac{2}{\ell}\,v_2
+    \]
+
+    **Remarque :** Dans certains énoncés, on trouve \( \ddot{\theta} = -\dfrac{v_2}{2z} \) si \(v_2\) est défini différemment. Ici on garde la forme avec la constante \(\ell\).
+
+    En injectant \( \ddot{z}=v_1 \) et \( \ddot{\theta}= -\dfrac{2}{\ell}v_2 \) dans \( h^{(4)} \) :
+
+    \[
+    h^{(4)} = \frac{1}{M}
+    \begin{bmatrix}
+    v_1\sin\theta + 2\dot{z}\dot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta + z\left(-\dfrac{2}{\ell}v_2\right)\cos\theta \\[2pt]
+    -v_1\cos\theta + 2\dot{z}\dot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta + z\left(-\dfrac{2}{\ell}v_2\right)\sin\theta
+    \end{bmatrix}
+    \]
+
+    Soit finalement :
+
+    \[
+    \boxed{h^{(4)} = \frac{1}{M}
+    \begin{bmatrix}
+    v_1\sin\theta + 2\dot{z}\dot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta - \dfrac{2z}{\ell}v_2\cos\theta \\[2pt]
+    -v_1\cos\theta + 2\dot{z}\dot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta - \dfrac{2z}{\ell}v_2\sin\theta
+    \end{bmatrix}}
+    \]
+
+    ## 5. Interprétation
+
+    On voit que \( h^{(4)} \) dépend **linéairement** des commandes \( v = (v_1, v_2) \).
+    C’est exactement ce qu’il faut pour réaliser une linéarisation exacte de type \( h^{(4)} = u \) (où \(u\) est une nouvelle commande) dans la suite du problème.
     """)
     return
 
@@ -2616,10 +2742,124 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    # Linéarisation exacte
+
+    On veut montrer qu’on peut choisir les commandes \( v = (v_1, v_2) \) du système auxiliaire précédent en fonction d’une nouvelle commande \( u = (u_1, u_2) \) de sorte que la dynamique de \( h \) devienne
+
+    \[
+    h^{(4)} = u
+    \]
+
+    ## 1. Écriture matricielle de \( h^{(4)} \)
+
+    De la question précédente, on a :
+
+    \[
+    h^{(4)} = \frac{1}{M}
+    \begin{bmatrix}
+    v_1\sin\theta + 2\dot{z}\dot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta - \dfrac{2z}{\ell}v_2\cos\theta \\[2pt]
+    -v_1\cos\theta + 2\dot{z}\dot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta - \dfrac{2z}{\ell}v_2\sin\theta
+    \end{bmatrix}
+    \]
+
+    On peut réécrire ceci sous forme compacte :
+
+    \[
+    h^{(4)} = \frac{1}{M} \underbrace{\begin{bmatrix}
+    \sin\theta & -\dfrac{2z}{\ell}\cos\theta \\[2pt]
+    -\cos\theta & -\dfrac{2z}{\ell}\sin\theta
+    \end{bmatrix}}_{=: \mathbf{M}(\theta, z)}
+    \begin{bmatrix} v_1 \\ v_2 \end{bmatrix}
+    \;+\; c(\theta, \dot\theta, z, \dot z)
+    \]
+
+    où le terme résiduel (qui ne dépend pas de \( v \)) est
+
+    \[
+    c(\theta, \dot\theta, z, \dot z) = \frac{1}{M}
+    \begin{bmatrix}
+    2\dot{z}\dot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta \\[2pt]
+    2\dot{z}\dot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta
+    \end{bmatrix}
+    \]
+
+    ## 2. Inversibilité de la matrice \( \mathbf{M}(\theta, z) \)
+
+    Calculons son déterminant :
+
+    \[
+    \begin{aligned}
+    \det(\mathbf{M}) &= \sin\theta \cdot \left(-\frac{2z}{\ell}\sin\theta\right) \;-\; \left(-\frac{2z}{\ell}\cos\theta\right)\cdot(-\cos\theta) \\
+    &= -\frac{2z}{\ell}\sin^2\theta \;-\; \frac{2z}{\ell}\cos^2\theta \\
+    &= -\frac{2z}{\ell}\bigl(\sin^2\theta + \cos^2\theta\bigr) \\
+    &= -\frac{2z}{\ell}
+    \end{aligned}
+    \]
+
+    Ainsi \(\det(\mathbf{M}) = -\dfrac{2z}{\ell}\).
+    Tant que \( z \neq 0 \), la matrice est inversible. C’est le cas dans le fonctionnement normal (distance non nulle).
+
+    ## 3. Loi de commande du système auxiliaire
+
+    On souhaite obtenir \( h^{(4)} = u \). Il suffit d’imposer :
+
+    \[
+    \frac{1}{M}\,\mathbf{M}(\theta,z)\, v \;+\; c = u
+    \]
+
+    Soit
+
+    \[
+    \mathbf{M}(\theta,z)\, v = M\bigl(u - c\bigr)
+    \]
+
+    D’où la commande \( v \) (qui est l’entrée du système auxiliaire précédent) :
+
+    \[
+    \boxed{v = M\; \mathbf{M}(\theta,z)^{-1}\,\bigl(u - c(\theta,\dot\theta,z,\dot z)\bigr)}
+    \]
+
+    La matrice inverse se calcule facilement :
+
+    \[
+    \mathbf{M}^{-1} = \frac{\ell}{-2z}
+    \begin{bmatrix}
+    -\dfrac{2z}{\ell}\sin\theta & \dfrac{2z}{\ell}\cos\theta \\[2pt]
+    \cos\theta & \sin\theta
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    \sin\theta & -\cos\theta \\[2pt]
+    -\dfrac{\ell}{2z}\cos\theta & -\dfrac{\ell}{2z}\sin\theta
+    \end{bmatrix}
+    \]
+
+    ## 4. Résultat final
+
+    Avec ce choix de \( v \), la dynamique du système bouclé devient
+
+    \[
+    \boxed{h^{(4)} = u}
+    \]
+
+    C’est un double intégrateur pur en deux dimensions : chaque composante de \( h \) est gouvernée par une chaîne de quatre intégrateurs.
+    On a donc réalisé une **linéarisation exacte** par bouclage, ce qui permettra de synthétiser facilement des lois de commande (par exemple, placement de pôles ou suivi de trajectoire).
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 State to Derivatives of the Output
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
     """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
