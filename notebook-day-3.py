@@ -2577,13 +2577,13 @@ def _(mo):
     \]
 
     De plus, le moment d’inertie de la tige est \(J = \frac{1}{12}M\ell^2\).
-    On peut montrer que, par construction du point de percussion, les termes en \(\dot\theta^2\) et \(\ddot\theta\) se simplifient quand on injecte ces expressions dans \(\ddot h\). Après un calcul algébrique (les annulations sont prévues par la conception du système), il reste
+    On peut montrer que, par construction du point de percussion, les termes en \(\dot\theta^2\) et \(\ddot\theta\) se simplifient quand on injecte ces expressions dans \(\ddot h\). Après un calcul algébrique, il reste
 
     \[
     \ddot x = \frac{z}{M}\sin\theta,\qquad \ddot y = -\frac{z}{M}\cos\theta - g
     \]
 
-    et les termes en \(\ddot\theta\) disparaissent miraculeusement.
+    et les termes en \(\ddot\theta\) disparaissent.
 
     ## 4. Résultat final simplifié
 
@@ -2596,7 +2596,7 @@ def _(mo):
     \end{bmatrix}}
     \]
 
-    Ainsi, **après avoir branché le système auxiliaire**, l’accélération de \(h\) ne dépend plus que de l’angle \(\theta\) et de la variable \(z\) (et des constantes \(M, g\)). Les termes en \(\dot\theta\) et \(\ddot\theta\) se sont éliminés, ce qui est le résultat clé attendu.
+    Ainsi, **après avoir branché le système auxiliaire**, l’accélération de \(h\) ne dépend plus que de l’angle \(\theta\) et de la variable \(z\) (et des constantes \(M, g\)). Les termes en \(\dot\theta\) et \(\ddot\theta\) se sont éliminés, ce qui donne le résultat attendu.
     """)
     return
 
@@ -2647,7 +2647,7 @@ def _(mo):
 
     ## 3. Quatrième dérivée \( h^{(4)} \)
 
-    On redérive \( h^{(3)} \). Attention aux produits : il faut dériver chaque terme.
+    On redérive \( h^{(3)} \).
 
     \[
     \begin{aligned}
@@ -2695,7 +2695,6 @@ def _(mo):
     \ddot{\theta} = -\frac{M\ell}{6J}\,v_2 = -\frac{2}{\ell}\,v_2
     \]
 
-    **Remarque :** Dans certains énoncés, on trouve \( \ddot{\theta} = -\dfrac{v_2}{2z} \) si \(v_2\) est défini différemment. Ici on garde la forme avec la constante \(\ell\).
 
     En injectant \( \ddot{z}=v_1 \) et \( \ddot{\theta}= -\dfrac{2}{\ell}v_2 \) dans \( h^{(4)} \) :
 
@@ -2716,11 +2715,6 @@ def _(mo):
     -v_1\cos\theta + 2\dot{z}\dot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta - \dfrac{2z}{\ell}v_2\sin\theta
     \end{bmatrix}}
     \]
-
-    ## 5. Interprétation
-
-    On voit que \( h^{(4)} \) dépend **linéairement** des commandes \( v = (v_1, v_2) \).
-    C’est exactement ce qu’il faut pour réaliser une linéarisation exacte de type \( h^{(4)} = u \) (où \(u\) est une nouvelle commande) dans la suite du problème.
     """)
     return
 
@@ -2855,11 +2849,6 @@ def _(mo):
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
     """)
-    return
-
-
-@app.cell
-def _():
     return
 
 
