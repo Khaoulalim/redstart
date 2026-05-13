@@ -2852,6 +2852,37 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, l, np):
+    def Tr(x, dx, y, dy, theta, dtheta, z, dz):
+        # h
+        h_x  = x - (l/6) * np.sin(theta)
+        h_y  = y + (l/6) * np.cos(theta)
+
+        # dh/dt
+        dh_x = dx - (l/6) * dtheta * np.cos(theta)
+        dh_y = dy - (l/6) * dtheta * np.sin(theta)
+
+        # d²h/dt²
+        d2h_x = (z / M) * np.sin(theta)
+        d2h_y = -(z / M) * np.cos(theta) - g
+
+        # d³h/dt³
+        d3h_x = (dz * np.sin(theta) + z * dtheta * np.cos(theta)) / M
+        d3h_y = (-dz * np.cos(theta) + z * dtheta * np.sin(theta)) / M
+
+        return h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y
+
+    return (Tr,)
+
+
+@app.cell
+def _(Tr):
+    #Test:
+    Tr(1.0,2.0,3.0,4.0,0.1,0.2,-0.3,-0.4)
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -2862,6 +2893,169 @@ def _(mo):
 
     Implement the corresponding function `T_inv`.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Inversion (unicité avec \(z<0\))
+
+    On suppose qu’à tout instant \(z<0\).
+    On veut montrer que la connaissance de \(h\), \(\dot h\), \(\ddot h\) et \(h^{(3)}\) permet de retrouver **de manière unique** :
+
+    - l’état du booster : \(x, \dot x, y, \dot y, \theta, \dot\theta\)
+    - l’état du système auxiliaire : \(z, \dot z\)
+
+    ## 1. Reconstruction de \(z\) et \(\theta\) à partir de \(\ddot h\)
+
+    On a :
+
+    \[
+    \ddot h = \begin{bmatrix} \dfrac{z}{M}\sin\theta \\[1em] -\dfrac{z}{M}\cos\theta - g \end{bmatrix}
+    \]
+
+    Donc :
+
+    \[
+    \frac{z}{M}\sin\theta = \ddot h_x, \qquad -\frac{z}{M}\cos\theta = \ddot h_y + g
+    \]
+
+    ### Calcul de \(z\)
+    En élevant au carré et en additionnant :
+
+    \[
+    \left(\frac{z}{M}\right)^2 = \ddot h_x^{\,2} + (\ddot h_y + g)^2
+    \quad\Rightarrow\quad
+    \frac{|z|}{M} = \sqrt{\ddot h_x^{\,2} + (\ddot h_y + g)^2}
+    \]
+
+    Comme on suppose \(z < 0\), on a \(z = -M\sqrt{\ddot h_x^{\,2} + (\ddot h_y + g)^2}\).
+    C’est **unique**.
+
+    ### Calcul de \(\theta\)
+    Posons \(r = -z/M > 0\). Alors :
+
+    \[
+    \sin\theta = \frac{\ddot h_x}{z/M} = \frac{\ddot h_x}{-r} = -\frac{\ddot h_x}{r}
+    \]
+    \[
+    \cos\theta = -\frac{\ddot h_y+g}{z/M} = -\frac{\ddot h_y+g}{-r} = \frac{\ddot h_y+g}{r}
+    \]
+
+    D’où :
+
+    \[
+    \theta = \arctan\!\left(\frac{-\ddot h_x}{\ddot h_y + g}\right)
+    \]
+
+    Cet angle est unique dans \((-\pi,\pi]\) (car \(r>0\)).
+
+
+    ## 2. Reconstruction de \(\dot z\) et \(\dot\theta\) à partir de \(h^{(3)}\)
+
+    On a :
+
+    \[
+    h^{(3)} = \frac{1}{M}
+    \begin{bmatrix}
+    \dot z\sin\theta + z\dot\theta\cos\theta \\[2pt]
+    -\dot z\cos\theta + z\dot\theta\sin\theta
+    \end{bmatrix}
+    \]
+
+    Multiplions par \(M\) :
+
+    \[
+    M h^{(3)} =
+    \begin{bmatrix}
+    \sin\theta & z\cos\theta \\
+    -\cos\theta & z\sin\theta
+    \end{bmatrix}
+    \begin{bmatrix} \dot z \\ \dot\theta \end{bmatrix}
+    \]
+
+    Le déterminant de la matrice \(2\times2\) vaut \(z(\sin^2\theta+\cos^2\theta) = z \neq 0\).
+    On peut donc inverser :
+
+    \[
+    \begin{bmatrix} \dot z \\ \dot\theta \end{bmatrix}
+    = \frac{1}{z}
+    \begin{bmatrix}
+    z\sin\theta & -z\cos\theta \\
+    \cos\theta & \sin\theta
+    \end{bmatrix}
+    M h^{(3)}
+    \]
+
+    En développant :
+
+    \[
+    \boxed{\dot z = M\bigl(\sin\theta \cdot h^{(3)}_x - \cos\theta \cdot h^{(3)}_y\bigr)}
+    \]
+    \[
+    \boxed{\dot\theta = \frac{M}{z}\bigl(\cos\theta \cdot h^{(3)}_x + \sin\theta \cdot h^{(3)}_y\bigr)}
+    \]
+
+    Tous les termes de droite sont connus (\(z, \theta, h^{(3)}\)), donc \(\dot z\) et \(\dot\theta\) sont **uniques**.
+
+
+    ## 3. Reconstruction de \(x, y, \dot x, \dot y\) à partir de \(h\) et \(\dot h\)
+
+    Rappel :
+
+    \[
+    h = \begin{bmatrix} x - \dfrac{\ell}{6}\sin\theta \\[1em] y + \dfrac{\ell}{6}\cos\theta \end{bmatrix},
+    \qquad
+    \dot h = \begin{bmatrix} \dot x - \dfrac{\ell}{6}\dot\theta\cos\theta \\[1em] \dot y - \dfrac{\ell}{6}\dot\theta\sin\theta \end{bmatrix}
+    \]
+
+    On isole \(x, \dot x, y, \dot y\) :
+
+    \[
+    x = h_x + \frac{\ell}{6}\sin\theta, \qquad
+    \dot x = \dot h_x + \frac{\ell}{6}\dot\theta\cos\theta
+    \]
+    \[
+    y = h_y - \frac{\ell}{6}\cos\theta, \qquad
+    \dot y = \dot h_y + \frac{\ell}{6}\dot\theta\sin\theta
+    \]
+
+    Puisque \(\theta\) et \(\dot\theta\) sont déjà connus, ces quatre valeurs sont **uniques**.
+    """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def T_inv(h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y):
+        # Récupération de theta
+        theta = np.arctan2(-d2h_x, d2h_y + g)
+
+        # Récupération de z  (z < 0)
+        z = -M * np.sqrt(d2h_x**2 + (d2h_y + g)**2)
+
+        # Récupération de dz et dtheta
+        dz     = M * ( d3h_x * np.sin(theta) - d3h_y * np.cos(theta))
+        dtheta = (M / z) * (d3h_x * np.cos(theta) + d3h_y * np.sin(theta))
+
+        # Récupération de x, y
+        x = h_x + (l/6) * np.sin(theta)
+        y = h_y - (l/6) * np.cos(theta)
+
+        # Récupération de dx, dy
+        dx = dh_x + (l/6) * dtheta * np.cos(theta)
+        dy = dh_y + (l/6) * dtheta * np.sin(theta)
+
+        return x, dx, y, dy, theta, dtheta, z, dz
+
+    return (T_inv,)
+
+
+@app.cell
+def _(T_inv, Tr):
+    #Test inversion
+    T_inv(*Tr(1.0,2.0,3.0,4.0,0.1,0.2,-0.3,-0.4))
     return
 
 
