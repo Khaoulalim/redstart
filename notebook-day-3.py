@@ -3095,6 +3095,135 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, T_inv, Tr, l, np):
+    def compute(
+        x_0,
+        dx_0,
+        y_0,
+        dy_0,
+        theta_0,
+        dtheta_0,
+        z_0,
+        dz_0,
+        x_tf,
+        dx_tf,
+        y_tf,
+        dy_tf,
+        theta_tf,
+        dtheta_tf,
+        z_tf,
+        dz_tf,
+        tf,
+    ):
+
+        h0 = Tr(x_0, dx_0, y_0, dy_0, theta_0, dtheta_0, z_0, dz_0)
+        hf = Tr(x_tf, dx_tf, y_tf, dy_tf, theta_tf, dtheta_tf, z_tf, dz_tf)
+
+        def solve_poly(h0, dh0, d2h0, d3h0, hf, dhf, d2hf, d3hf, T):
+
+            a0 = h0
+            a1 = dh0
+            a2 = d2h0 / 2.0
+            a3 = d3h0 / 6.0
+
+        
+            p_T = a0 + a1 * T + a2 * T ** 2 + a3 * T ** 3
+            dp_T = a1 + 2 * a2 * T + 3 * a3 * T ** 2
+            d2p_T = 2 * a2 + 6 * a3 * T
+            d3p_T = 6 * a3
+
+            b = np.array([hf - p_T, dhf - dp_T, d2hf - d2p_T, d3hf - d3p_T])
+            A = np.array(
+                [
+                    [T ** 4, T ** 5, T ** 6, T ** 7],
+                    [4 * T ** 3, 5 * T ** 4, 6 * T ** 5, 7 * T ** 6],
+                    [12 * T ** 2, 20 * T ** 3, 30 * T ** 4, 42 * T ** 5],
+                    [24 * T, 60 * T ** 2, 120 * T ** 3, 210 * T ** 4],
+                ]
+            )
+            c = np.linalg.solve(A, b)
+            return np.array([a0, a1, a2, a3, c[0], c[1], c[2], c[3]])
+
+  
+        coeff_x = solve_poly(
+            h0[0], h0[2], h0[4], h0[6], hf[0], hf[2], hf[4], hf[6], tf
+        )
+        coeff_y = solve_poly(
+            h0[1], h0[3], h0[5], h0[7], hf[1], hf[3], hf[5], hf[7], tf
+        )
+
+        def fun(t):
+       
+            h_x = np.polyval(coeff_x[::-1], t)
+            dh_x = np.polyval(
+                np.array([k * coeff_x[k] for k in range(1, 8)])[::-1], t
+            )
+            d2h_x = np.polyval(
+                np.array([k * (k - 1) * coeff_x[k] for k in range(2, 8)])[::-1], t
+            )
+            d3h_x = np.polyval(
+                np.array([k * (k - 1) * (k - 2) * coeff_x[k] for k in range(3, 8)])[
+                    ::-1
+                ],
+                t,
+            )
+            d4h_x = np.polyval(
+                np.array(
+                    [k * (k - 1) * (k - 2) * (k - 3) * coeff_x[k] for k in range(4, 8)]
+                )[::-1],
+                t,
+            )
+
+            h_y = np.polyval(coeff_y[::-1], t)
+            dh_y = np.polyval(
+                np.array([k * coeff_y[k] for k in range(1, 8)])[::-1], t
+            )
+            d2h_y = np.polyval(
+                np.array([k * (k - 1) * coeff_y[k] for k in range(2, 8)])[::-1], t
+            )
+            d3h_y = np.polyval(
+                np.array([k * (k - 1) * (k - 2) * coeff_y[k] for k in range(3, 8)])[
+                    ::-1
+                ],
+                t,
+            )
+            d4h_y = np.polyval(
+                np.array(
+                    [k * (k - 1) * (k - 2) * (k - 3) * coeff_y[k] for k in range(4, 8)]
+                )[::-1],
+                t,
+            )
+
+        
+            x, dx, y, dy, theta, dtheta, z, dz = T_inv(
+                h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y
+            )
+
+        
+            u1, u2 = d4h_x, d4h_y
+
+        
+            v1 = M * (np.sin(theta) * u1 - np.cos(theta) * u2) + z * dtheta ** 2
+            v2 = M * (np.cos(theta) * u1 + np.sin(theta) * u2) - 2.0 * dz * dtheta
+
+        
+            w1 = z - M * l * dtheta ** 2 / 6.0
+            w2 = M * l * v2 / (6.0 * z)
+
+            fx = np.sin(theta) * w1 + np.cos(theta) * w2
+            fy = -np.cos(theta) * w1 + np.sin(theta) * w2
+
+            f = np.sqrt(fx ** 2 + fy ** 2)
+            phi = np.arctan2(-fx,fy) - theta
+
+            return x, dx, y, dy, theta, dtheta, z, dz, f, phi
+
+        return fun
+
+    return (compute,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -3108,6 +3237,78 @@ def _(mo):
 
     Make the graph of the relevant variables as a function of time, then make an animation out of the same result. Comment and iterate if necessary!
     """)
+    return
+
+
+@app.cell
+def _(M, booster_anim, compute, g, l, mo, np, plt, world):
+    def graphical_validation():
+    
+        fun = compute(
+            5.0, 0.0, 20.0, -1.0, -np.pi / 8, 0.0, -M * g, 0.0,
+            0.0, 0.0, 2.0 / 3.0 * l, 0.0, 0.0, 0.0, -M * g, 0.0,
+            10.0,
+        )
+
+ 
+        t = np.linspace(0, 10, 1000)
+        states = np.array([fun(ti) for ti in t])
+        x_t, dx_t, y_t, dy_t, theta_t, dtheta_t, z_t, dz_t, f_t, phi_t = states.T
+
+        fig_local, axes = plt.subplots(3, 2, figsize=(12, 10))
+
+        axes[0, 0].plot(t, x_t, color="tab:blue")
+        axes[0, 0].set_title(r"$x(t)$")
+        axes[0, 0].set_xlabel(r"time $t$")
+        axes[0, 0].grid(True)
+
+        axes[0, 1].plot(t, y_t, color="tab:orange")
+        axes[0, 1].axhline(2 * l / 3, color="grey", ls="--", label=r"$y_{\mathrm{target}}$")
+        axes[0, 1].set_title(r"$y(t)$")
+        axes[0, 1].set_xlabel(r"time $t$")
+        axes[0, 1].legend()
+        axes[0, 1].grid(True)
+
+        axes[1, 0].plot(t, theta_t, color="tab:green")
+        axes[1, 0].set_title(r"$\theta(t)$")
+        axes[1, 0].set_xlabel(r"time $t$")
+        axes[1, 0].grid(True)
+
+        axes[1, 1].plot(t, f_t, color="tab:red")
+        axes[1, 1].set_title(r"$f(t)$")
+        axes[1, 1].set_xlabel(r"time $t$")
+        axes[1, 1].grid(True)
+
+        axes[2, 0].plot(t, phi_t, color="tab:purple")
+        axes[2, 0].set_title(r"$\phi(t)$")
+        axes[2, 0].set_xlabel(r"time $t$")
+        axes[2, 0].grid(True)
+
+        axes[2, 1].plot(t, z_t, color="tab:brown")
+        axes[2, 1].set_title(r"$z(t)$")
+        axes[2, 1].set_xlabel(r"time $t$")
+        axes[2, 1].grid(True)
+
+        plt.tight_layout()
+
+    
+        def x(t): return fun(t)[0]
+        def y(t): return fun(t)[2]
+        def theta(t): return fun(t)[4]
+        def f(t): return fun(t)[8]
+        def phi(t): return fun(t)[9]
+
+        anim = mo.Html(
+            world(
+                [-6, 6, -2, 22],
+                booster_anim(x, y, theta, f, phi, T=10.0),
+            )
+        ).center()
+
+        return mo.vstack([mo.center(fig_local), anim])
+
+
+    graphical_validation()
     return
 
 
