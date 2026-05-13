@@ -2254,6 +2254,227 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    # Interprétation géométrique du point \(h\)
+
+    On a la sortie
+
+    \[
+    h = \begin{bmatrix} x - \frac{\ell}{6}\sin\theta \\ y + \frac{\ell}{6}\cos\theta \end{bmatrix}
+    \]
+
+    ## 1. Direction du booster
+
+    Le booster est incliné d’un angle \(\theta\) par rapport à la verticale.
+    Le vecteur unitaire pointant du bas (réacteur) vers le haut est
+
+    \[
+    \vec{u} = \begin{pmatrix} -\sin\theta \\ \cos\theta \end{pmatrix}
+    \]
+    (\(\theta=0\) donne \((0,1)^T\) : vertical).
+
+    ## 2. Réécriture de \(h\)
+
+    \[
+    h = \underbrace{\begin{pmatrix}x\\y\end{pmatrix}}_{\text{centre de masse}} + \frac{\ell}{6}\,\vec{u}
+    \]
+
+    Donc \(h\) est sur l’axe du booster, à une distance \(\ell/6\) *au-dessus* du centre de masse.
+
+    ## 3. Position de \(h\)
+
+    Le centre de masse est à \(\ell/2\) du réacteur.
+    \[
+    \frac{\ell}{2} + \frac{\ell}{6} = \frac{2\ell}{3}
+    \]
+    Ainsi \(h\) est à \(2\ell/3\) du bas du booster.
+
+
+    ## 4. Interpretation de \(h\): Centre de percussion
+
+    Le moment d’inertie par rapport au centre de masse : \(J = \frac{1}{12}M\ell^2\).
+    Le centre de percussion par rapport au réacteur (situé à \(r = \ell/2\) du centre de masse) est à
+
+    \[
+    d = \frac{J}{M r} = \frac{\ell/12}{\ell/2} = \frac{\ell}{6}
+    \]
+    au-dessus du centre de masse. C’est exactement la position de \(h\).
+
+    ## 5. Conclusion
+
+    \(h\) est le *centre de percussion* du booster.
+    En ce point, translation et rotation sont découplées, ce qui simplifie la dynamique et permet une linéarisation exacte. D’où l’intérêt de ce choix pour la commande.
+    """)
+    return
+
+
+@app.cell
+def _():
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # -----------------------------
+    # Paramètres
+    # -----------------------------
+    l = 6
+    theta = np.radians(12)
+
+    # Centre de masse
+    x, y = 0, 0
+
+    # Direction du booster
+    dx = np.sin(theta)
+    dy = np.cos(theta)
+
+    # Réacteur (base)
+    xr = x + (l/2) * dx
+    yr = y - (l/2) * dy
+
+    # Sommet
+    xt = x - (l/2) * dx
+    yt = y + (l/2) * dy
+
+    # Point h : à une distance l/6 depuis le centre de masse
+    xh = x - (l/6) * dx
+    yh = y + (l/6) * dy
+
+    # -----------------------------
+    # Figure
+    # -----------------------------
+    fig, ax = plt.subplots(figsize=(7, 9))
+    ax.set_facecolor("#dfeaf4")
+
+    # Sol
+    ax.axhspan(-4.2, -3.2, color="#c7a96b")
+
+    # Ligne verticale
+    ax.plot([0, 0], [-4, 4], '--', color='gray', alpha=0.35)
+    ax.text(0.12, 3.5, "verticale", fontsize=11, color='gray')
+
+    # Booster
+    ax.plot([xr, xt], [yr, yt],
+            color='#444444', linewidth=12,
+            solid_capstyle='round')
+
+    # Reflet
+    ax.plot([xr+0.06, xt+0.06], [yr, yt],
+            color='#aeb7bf', linewidth=4, alpha=0.5)
+
+    # Axe du booster
+    ax.plot([xr, xt], [yr, yt],
+            color='black', linewidth=1)
+
+    # -----------------------------
+    # Points
+    # -----------------------------
+
+    # Centre de masse
+    ax.scatter(x, y, s=120,
+               color='#1f77ff',
+               edgecolors='white',
+               linewidth=2,
+               zorder=5)
+
+    # Point h
+    ax.scatter(xh, yh, s=120,
+               color='#b87400',
+               edgecolors='white',
+               linewidth=2,
+               zorder=5)
+
+    # Réacteur
+    ax.scatter(xr, yr, s=80,
+               color='#e4572e',
+               edgecolors='white',
+               linewidth=1.5,
+               zorder=5)
+
+    # Flamme
+    ax.plot([xr, xr], [yr-0.15, yr-0.55],
+            color='orange',
+            linewidth=6,
+            solid_capstyle='round')
+
+    # -----------------------------
+    # Segment l/6 depuis le centre de masse
+    # -----------------------------
+    ax.plot([x, xh], [y, yh],
+            color='#c58b3a',
+            linewidth=3)
+
+    # Texte l/6
+    mx = (x + xh) / 2
+    my = (y + yh) / 2
+
+    ax.text(mx - 0.55, my + 0.15,
+            "ℓ/6",
+            fontsize=12,
+            color='#7a4b00',
+            weight='bold')
+
+    # -----------------------------
+    # Annotations
+    # -----------------------------
+
+    ax.annotate("Centre de masse\n(x, y)",
+                xy=(x, y),
+                xytext=(1.3, -0.2),
+                fontsize=11,
+                color='#1f3f75',
+                arrowprops=dict(
+                    arrowstyle='-',
+                    linestyle='dashed',
+                    color='#1f77ff'))
+
+    ax.annotate("Point h",
+                xy=(xh, yh),
+                xytext=(1.7, 1.5),
+                fontsize=12,
+                color='#7a4b00',
+                weight='bold',
+                arrowprops=dict(
+                    arrowstyle='-',
+                    linestyle='dashed',
+                    color='#b87400'))
+
+    ax.annotate("Réacteur",
+                xy=(xr, yr),
+                xytext=(1.4, -3.0),
+                fontsize=11,
+                color='#555555',
+                arrowprops=dict(
+                    arrowstyle='-',
+                    linestyle='dashed',
+                    color='gray'))
+
+    # -----------------------------
+    # Texte explicatif
+    # -----------------------------
+    ax.text(-3.8, -3.85,
+            "h = centre de masse + (ℓ/6) × axe du booster",
+            fontsize=11,
+            color='#333333')
+
+    # -----------------------------
+    # Mise en forme
+    # -----------------------------
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(-4.2, 4)
+    ax.set_aspect('equal')
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
+    return l, np, plt
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 First and Second-Order Derivatives
 
     Compute $\dot{h}$ as a function of $\dot{x}$, $\dot{y}$, $\theta$ and $\dot{\theta}$ (and constants) and then $\ddot{h}$ as a function of $\theta$ and $z$ (and constants) when the auxiliary system is plugged in the booster.
