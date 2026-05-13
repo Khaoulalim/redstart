@@ -2308,103 +2308,98 @@ def _(mo):
 
 
 @app.cell
-def _():
-    import numpy as np
-    import matplotlib.pyplot as plt
+def _(l, np, plt):
 
-    # -----------------------------
-    # Paramètres
-    # -----------------------------
-    l = 6
-    theta = np.radians(12)
+    theta = np.radians(12)  # Angle d'inclinaison par rapport à la verticale (en radians)
 
-    # Centre de masse
+    # Centre de masse du booster (position arbitraire pour le dessin)
     x, y = 0, 0
 
-    # Direction du booster
-    dx = np.sin(theta)
-    dy = np.cos(theta)
+    # Vecteur unitaire le long de l'axe du booster (pointant vers le haut)
+    # theta > 0 correspond à une inclinaison vers la gauche (convention trigonométrique)
+    dx = np.sin(theta)   # Composante x de l'axe du booster
+    dy = np.cos(theta)   # Composante y de l'axe du booster
 
-    # Réacteur (base)
+    # Position du réacteur (base du booster) : à l/2 en dessous du centre de masse
     xr = x + (l/2) * dx
     yr = y - (l/2) * dy
 
-    # Sommet
+    # Position du sommet du booster : à l/2 au-dessus du centre de masse
     xt = x - (l/2) * dx
     yt = y + (l/2) * dy
 
-    # Point h : à une distance l/6 depuis le centre de masse
+    # Position du point h : à l/6 au-dessus du centre de masse (sur l'axe du booster)
+    # h = [x - (l/6)*sin(theta), y + (l/6)*cos(theta)]
     xh = x - (l/6) * dx
     yh = y + (l/6) * dy
 
     # -----------------------------
-    # Figure
+    # Création de la figure
     # -----------------------------
     fig, ax = plt.subplots(figsize=(7, 9))
-    ax.set_facecolor("#dfeaf4")
+    ax.set_facecolor("#dfeaf4")  # Fond bleu ciel (couleur du ciel)
 
-    # Sol
+    # Sol (bande brune en bas)
     ax.axhspan(-4.2, -3.2, color="#c7a96b")
 
-    # Ligne verticale
+    # Ligne verticale de référence
     ax.plot([0, 0], [-4, 4], '--', color='gray', alpha=0.35)
     ax.text(0.12, 3.5, "verticale", fontsize=11, color='gray')
 
-    # Booster
+    # Dessin du booster (tube gris foncé avec extrémités arrondies)
     ax.plot([xr, xt], [yr, yt],
             color='#444444', linewidth=12,
             solid_capstyle='round')
 
-    # Reflet
+    # Reflet sur le booster (effet visuel)
     ax.plot([xr+0.06, xt+0.06], [yr, yt],
             color='#aeb7bf', linewidth=4, alpha=0.5)
 
-    # Axe du booster
+    # Axe central du booster (ligne noire fine)
     ax.plot([xr, xt], [yr, yt],
             color='black', linewidth=1)
 
     # -----------------------------
-    # Points
+    # Points caractéristiques
     # -----------------------------
 
-    # Centre de masse
+    # Centre de masse (point bleu)
     ax.scatter(x, y, s=120,
                color='#1f77ff',
                edgecolors='white',
                linewidth=2,
                zorder=5)
 
-    # Point h
+    # Point h : centre de percussion (point marron/orange)
     ax.scatter(xh, yh, s=120,
                color='#b87400',
                edgecolors='white',
                linewidth=2,
                zorder=5)
 
-    # Réacteur
+    # Réacteur (point rouge à la base)
     ax.scatter(xr, yr, s=80,
                color='#e4572e',
                edgecolors='white',
                linewidth=1.5,
                zorder=5)
 
-    # Flamme
+    # Flamme du réacteur (rectangle orange en dessous)
     ax.plot([xr, xr], [yr-0.15, yr-0.55],
             color='orange',
             linewidth=6,
             solid_capstyle='round')
 
     # -----------------------------
-    # Segment l/6 depuis le centre de masse
+    # Segment l/6 depuis le centre de masse vers h
     # -----------------------------
     ax.plot([x, xh], [y, yh],
             color='#c58b3a',
             linewidth=3)
 
-    # Texte l/6
+    # Texte "l/6" au milieu du segment
     mx = (x + xh) / 2
     my = (y + yh) / 2
-
     ax.text(mx - 0.55, my + 0.15,
             "ℓ/6",
             fontsize=12,
@@ -2412,7 +2407,7 @@ def _():
             weight='bold')
 
     # -----------------------------
-    # Annotations
+    # Annotations textuelles
     # -----------------------------
 
     ax.annotate("Centre de masse\n(x, y)",
@@ -2455,11 +2450,11 @@ def _():
             color='#333333')
 
     # -----------------------------
-    # Mise en forme
+    # Mise en forme finale
     # -----------------------------
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4.2, 4)
-    ax.set_aspect('equal')
+    ax.set_aspect('equal')  # Échelle identique sur les deux axes
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -2469,7 +2464,7 @@ def _():
 
     plt.tight_layout()
     plt.show()
-    return l, np, plt
+    return dx, dy, theta, x, y
 
 
 @app.cell(hide_code=True)
@@ -2479,6 +2474,118 @@ def _(mo):
 
     Compute $\dot{h}$ as a function of $\dot{x}$, $\dot{y}$, $\theta$ and $\dot{\theta}$ (and constants) and then $\ddot{h}$ as a function of $\theta$ and $z$ (and constants) when the auxiliary system is plugged in the booster.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Dérivées de \(h\)
+
+    ## 1. Première dérivée
+
+    \[
+    h = \begin{bmatrix} x - \frac{\ell}{6}\sin\theta \\ y + \frac{\ell}{6}\cos\theta \end{bmatrix}
+    \]
+
+    \[
+    \dot{h}_x = \dot{x} - \frac{\ell}{6}\cos\theta\,\dot{\theta}, \qquad
+    \dot{h}_y = \dot{y} - \frac{\ell}{6}\sin\theta\,\dot{\theta}
+    \]
+
+    \[
+    \boxed{\dot{h} = \begin{bmatrix} \dot{x} - \dfrac{\ell}{6}\dot{\theta}\cos\theta \\ \dot{y} - \dfrac{\ell}{6}\dot{\theta}\sin\theta \end{bmatrix}}
+    \]
+
+    ## 2. Deuxième dérivée
+
+    \[
+    \ddot{h}_x = \ddot{x} + \frac{\ell}{6}\sin\theta\,\dot{\theta}^2 - \frac{\ell}{6}\cos\theta\,\ddot{\theta}
+    \]
+    \[
+    \ddot{h}_y = \ddot{y} - \frac{\ell}{6}\cos\theta\,\dot{\theta}^2 - \frac{\ell}{6}\sin\theta\,\ddot{\theta}
+    \]
+
+    ## 3. Dynamique du booster
+
+    \[
+    M\ddot{x} = -f\sin(\theta+\phi),\quad
+    M\ddot{y} = f\cos(\theta+\phi)-Mg,\quad
+    J\ddot{\theta} = -f\frac{\ell}{2}\sin\phi
+    \]
+    avec \(J = \frac{1}{12}M\ell^2\) \(\Rightarrow\) \(\ddot{\theta} = -\frac{6f}{M\ell}\sin\phi\).
+
+    ## 4. Simplification avec le système auxiliaire
+
+    On pose \(z = f\cos\phi - \frac{M\ell}{6}\dot{\theta}^2\).
+    En substituant et simplifiant, les termes en \(\phi\) s’annulent :
+
+    \[
+    \boxed{\ddot{h}_x = -\frac{z}{M}\sin\theta,\qquad \ddot{h}_y = \frac{z}{M}\cos\theta - g}
+    \]
+
+    Soit
+
+    \[
+    \boxed{\ddot{h} = \begin{bmatrix} -\dfrac{z}{M}\sin\theta \\[6pt] \dfrac{z}{M}\cos\theta - g \end{bmatrix}}
+    \]
+
+    ## 5. Interprétation
+
+    Le choix de \(h\) découple presque complètement translation et rotation, ce qui prépare la linéarisation exacte.
+    """)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(M, dx, dy, g, l, np, theta, x, y):
+
+    def compute_h(x, y, theta):
+
+        h_x = x - (l/6) * np.sin(theta)
+        h_y = y + (l/6) * np.cos(theta)
+        return np.array([h_x, h_y])
+
+
+    def compute_h_dot(dx, dy, dtheta, theta):
+
+        dh_x = dx - (l/6) * dtheta * np.cos(theta)
+        dh_y = dy - (l/6) * dtheta * np.sin(theta)
+        return np.array([dh_x, dh_y])
+
+
+    def compute_h_ddot(z, theta):
+
+        d2h_x = z * np.cos(theta)
+        d2h_y = z * np.sin(theta)
+        return np.array([d2h_x, d2h_y])
+
+
+
+
+    dtheta = 0.2
+    z = -M * g  # valeur typique en vol stationnaire
+
+    print("Test des derive  les parametres utilises sont ceux defini dans les aniciennes cellule ")
+    print(f"État: x={x}, y={y}, theta={theta:.3f} rad")
+    print()
+
+    # Position h
+    h = compute_h(x, y, theta)
+    print(f"h = {h}")
+
+    # Vitesse h_dot
+    h_dot = compute_h_dot(dx, dy, dtheta, theta)
+    print(f"dh/dt = {h_dot}")
+
+    # Accélération h_ddot
+    h_ddot = compute_h_ddot(z, theta)
+    print(f"d²h/dt² = {h_ddot}")
     return
 
 
